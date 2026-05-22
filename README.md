@@ -25,7 +25,7 @@ Interactive visualization of DevRev's data architecture — a MERN-style app opt
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/auth` | Validate master password, set admin JWT cookie |
-| `DELETE` | `/api/auth` | Clear session |
+| `DELETE` | `/api/auth` | Clear session (logout) |
 | `GET` | `/api/session` | Check authentication status and role |
 | `GET` | `/api/orgs` | List all discovered orgs (admin only) |
 | `POST` | `/api/discover` | Discover org model via DevRev PAT or refresh existing (admin only) |
@@ -49,12 +49,52 @@ Interactive visualization of DevRev's data architecture — a MERN-style app opt
 
 ## Features
 
-- **Relationship graph:** Force-directed SVG layout showing type-level connections with animated dots. Click edges to see 2-3 real examples from the org.
+### Relationship graph
+
+Force-directed SVG layout showing type-level connections discovered from the customer's org, with animated dots flowing along edges.
+
+**2-hop neighborhood exploration:** Click any edge to see its full context:
+- The clicked relationship highlights bold green (unmistakable "you are here")
+- 1-hop neighbors render medium green (directly connected)
+- 2-hop neighbors render light blue (extended context)
+- Everything else dims to near-invisible
+- Anchor nodes grow slightly larger for emphasis
+
+**Panel shows structured upstream/downstream view:**
+- ↑ Upstream: what feeds into the source/target nodes (indented by hop depth)
+- ● Selected: the relationship you clicked, highlighted
+- ↓ Downstream: what flows out from either node
+- Real examples from the org at the bottom
+
+### Annotations (pinned to graph)
+
+Annotations are pinned directly to graph nodes/edges as visual badges - not a separate list. Customers discover notes while exploring the graph naturally.
+
+**4 annotation types:**
+- 💬 **Context** (blue) - "This is what this does"
+- 💡 **Recommendation** (green) - "You should connect X to Y"
+- ❓ **Question** (yellow) - "Is this sync unit still active?"
+- ⭐ **Highlight** (orange) - "This is new since last quarter"
+
+**Visual indicators:**
+- Annotated nodes get a colored ring pulse + badge icon
+- Annotated edges get a colored indicator at midpoint
+- Multiple annotations on one node show a +N counter
+- Toggle button to show/hide the annotation layer
+- General (unpinned) notes shown below the graph
+
+### Other features
+
 - **Re-discovery:** Refresh an org's model using the stored (encrypted) PAT. Previous models saved as snapshots.
 - **Diff view:** Compare current model to up to 3 previous snapshots. Shows added/removed/changed categories and relationships.
-- **Share links:** Generate time-limited URLs (1 hour to 30 days) for sharing with customers without giving them the org password.
+- **Share links:** Generate time-limited URLs (1 hour to 30 days) for sharing without giving customers the org password.
 - **Export:** Download the model as JSON or the relationship graph as SVG.
-- **Annotations:** Admin-added notes visible to customers. Can be attached to specific object types or left as general notes.
+- **Toast notifications:** Subtle animated popups for all actions (copy, delete, refresh, errors).
+- **Customer view tracking:** Counts non-admin views per org with last-viewed timestamp.
+- **Stale org indicator:** Orange badge on orgs not refreshed in 30+ days.
+- **Mobile responsive:** Full breakpoints for phone/tablet across graph, panels, dashboard, and nav.
+- **Search/filter:** Filter orgs by name or slug on the admin dashboard.
+- **Logout:** Button in nav bar when admin session is active.
 
 ## Environment Variables
 
@@ -124,11 +164,12 @@ client/
   src/
     components/
       AdminLogin.jsx        Master password form
-      AdminDashboard.jsx    Org list + create/delete
+      AdminDashboard.jsx    Org list + create/delete + search
       AdminPanel.jsx        Share links, export, annotations management
       CustomerOrgView.jsx   Org password gate + model display
-      CustomerGraph.jsx     Force-directed SVG relationship graph
+      CustomerGraph.jsx     Force-directed SVG graph with 2-hop neighborhood
       DiffView.jsx          Snapshot comparison
+      Toast.jsx             Toast notification provider + context
       ObjectExplorer.jsx    Static 45-object interactive explorer
       Presentation.jsx      5-slide deck
     data/

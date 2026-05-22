@@ -1,0 +1,12 @@
+{
+  "name": "devrev-object-explorer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site with serverless functions'",
+    "start": "vercel dev"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

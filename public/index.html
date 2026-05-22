@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevRev Data Architecture</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 42' fill='none'%3E%3Cpath d='M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z' fill='%23FFE600'/%3E%3Cpath d='M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z' fill='%23FFE600'/%3E%3Cpath d='M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z' fill='%23FFE600'/%3E%3Cpath d='M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z' fill='%23FFE600'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:'Chip Display';src:url('fonts/ChipDisp-Bold.otf') format('opentype');font-weight:700}
+@font-face{font-family:'Chip Display';src:url('fonts/ChipDisp-Semibold.otf') format('opentype');font-weight:600}
+@font-face{font-family:'Chip Text';src:url('fonts/ChipText-Regular.otf') format('opentype');font-weight:400}
+@font-face{font-family:'Chip Text';src:url('fonts/ChipText-Medium.otf') format('opentype');font-weight:500}
+@font-face{font-family:'Chip Text';src:url('fonts/ChipText-Semibold.otf') format('opentype');font-weight:600}
+@font-face{font-family:'Chip Mono';src:url('fonts/ChipMono-Medium.otf') format('opentype');font-weight:500}
+
+:root{--n100:#FFFFFF;--n300:#F4F4F4;--n500:#CECECE;--n600:#A5A2A4;--n700:#7A7579;--n800:#514C4F;--n900:#3E3C3D;--n1000:#302E2F;--n1100:#211F20;--n1200:#191616;--n1300:#161616;--y400:#FFE600;--y100:#FFFCD9;--blue:#3968F6;--purple:#8854F6;--green:#7ADB12;--orange:#F35106;--red:#C90651;--cyan:#5996FF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Chip Text',system-ui,sans-serif;background:var(--n1300);color:var(--n100);overflow:hidden;height:100vh;width:100vw;letter-spacing:-0.015em}
+h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em}
+
+/* Slide container */
+.deck{position:relative;width:100%;height:100%;overflow:hidden}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 60px;opacity:0;transform:translateX(100%);transition:all 0.5s cubic-bezier(0.16,1,0.3,1);pointer-events:none;overflow-y:auto}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+
+/* Navigation */
+.nav-dots{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:var(--n900);cursor:pointer;transition:all 0.3s ease}
+.nav-dot.active{background:var(--y400);width:24px;border-radius:9999px}
+.slide-num{position:fixed;bottom:30px;right:40px;font-family:'Chip Mono',monospace;font-size:12px;color:var(--n700);z-index:100}
+.nav-hint{position:fixed;bottom:30px;left:40px;font-family:'Chip Mono',monospace;font-size:11px;color:var(--n800);z-index:100}
+
+/* Header bar on all slides */
+.slide-header{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid var(--n1000)}
+.slide-header svg{height:18px}
+.slide-header .badge{font-family:'Chip Mono',monospace;font-size:10px;color:var(--n700);text-transform:uppercase;padding:3px 10px;border-radius:9999px;background:var(--n1100);border:1px solid var(--n1000)}
+
+/* Common elements */
+.eyebrow{font-family:'Chip Mono',monospace;font-size:13px;color:var(--y400);text-transform:uppercase;margin-bottom:12px;letter-spacing:0}
+.title{font-size:42px;font-weight:700;line-height:0.95;margin-bottom:12px;text-align:center}
+.subtitle{font-size:16px;color:var(--n700);text-align:center;max-width:560px;margin-bottom:28px}
+.card{background:var(--n1200);border:1px solid var(--n1000);border-radius:12px;padding:16px;transition:all 0.2s ease}
+.card:hover{border-color:var(--n800)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:9999px;font-family:'Chip Mono',monospace;font-size:11px;text-transform:uppercase;background:var(--n1100);border:1px solid var(--n1000);color:var(--n700)}
+
+/* ─── SLIDE 1: Object Model ─── */
+.obj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:1000px}
+.obj-card{background:var(--n1200);border:1px solid var(--n1000);border-radius:12px;padding:16px}
+.obj-card-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--n1000)}
+.obj-card-dot{width:6px;height:6px;border-radius:50%}
+.obj-card-title{font-family:'Chip Mono',monospace;font-size:11px;text-transform:uppercase;color:var(--n600)}
+.obj-card-list{display:flex;flex-wrap:wrap;gap:4px}
+.obj-card-item{font-size:12px;color:var(--n700);padding:3px 8px;border-radius:6px;background:var(--n1100)}
+.obj-stats{display:flex;gap:16px;margin-top:32px}
+.obj-stat{text-align:center}
+.obj-stat-num{font-family:'Chip Display',system-ui,sans-serif;font-size:36px;font-weight:700;color:var(--y400)}
+.obj-stat-label{font-family:'Chip Mono',monospace;font-size:11px;color:var(--n700);text-transform:uppercase;margin-top:4px}
+
+/* ─── SLIDE 2: AirSync ─── */
+.sync-flow{display:flex;align-items:center;gap:24px;width:100%;max-width:960px;justify-content:center}
+.sync-sources{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:200px}
+.sync-source{background:var(--n1200);border:1px solid var(--n1000);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--n600)}
+.sync-source-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--n1100)}
+.sync-arrow{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--y400);min-width:60px;padding:0 8px;flex-shrink:0}
+.sync-arrow-line{width:100%;height:2px;background:var(--y400);position:relative}
+.sync-arrow-line.forward::after{content:'▶';position:absolute;right:-2px;top:-6px;font-size:9px;color:var(--y400)}
+.sync-arrow-line.backward::before{content:'◀';position:absolute;left:-2px;top:-6px;font-size:9px;color:var(--y400)}
+.sync-arrow-label{font-family:'Chip Mono',monospace;font-size:8px;color:var(--n700);white-space:nowrap}
+.sync-engine{background:var(--n1100);border:2px solid var(--y400);border-radius:12px;padding:16px 14px;text-align:center;width:160px}
+.sync-engine-title{font-family:'Chip Display',system-ui,sans-serif;font-size:16px;font-weight:700;color:var(--y400);margin-bottom:6px}
+.sync-engine-steps{display:flex;flex-direction:column;gap:3px}
+.sync-step{font-family:'Chip Mono',monospace;font-size:9px;color:var(--n600);padding:3px 6px;border-radius:5px;background:var(--n1200);text-transform:uppercase}
+.sync-dest{background:var(--n1200);border:1px solid var(--green);border-radius:12px;padding:14px;text-align:center;width:150px}
+.sync-dest-title{font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px}
+.sync-dest-sub{font-size:10px;color:var(--n700)}
+.sync-points{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:740px;margin-top:20px}
+.sync-point{background:var(--n1200);border:1px solid var(--n1000);border-radius:8px;padding:10px 12px}
+.sync-point-title{font-size:12px;font-weight:600;color:var(--n100);margin-bottom:3px}
+.sync-point-desc{font-size:10px;color:var(--n700);line-height:1.4}
+
+/* ─── SLIDE 3: Memory ─── */
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;max-width:1000px}
+.mem-card{background:var(--n1200);border:1px solid var(--n1000);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.25s ease;position:relative;overflow:hidden}
+.mem-card:hover{border-color:var(--y400);transform:translateY(-2px)}
+.mem-card.expanded{grid-column:span 2;border-color:var(--y400)}
+.mem-card-num{font-family:'Chip Mono',monospace;font-size:10px;color:var(--n800);margin-bottom:6px}
+.mem-card-name{font-family:'Chip Display',system-ui,sans-serif;font-size:15px;font-weight:700;margin-bottom:4px}
+.mem-card-tag{font-size:11px;color:var(--y400);margin-bottom:6px}
+.mem-card-desc{font-size:12px;color:var(--n700);line-height:1.4;display:none}
+.mem-card.expanded .mem-card-desc{display:block}
+.mem-card-hint{font-family:'Chip Mono',monospace;font-size:9px;color:var(--n800);margin-top:8px}
+
+/* ─── SLIDE 4: Data Flow ─── */
+.flow-container{display:flex;align-items:center;gap:24px;width:100%;max-width:1100px;justify-content:center}
+.flow-object{background:var(--n1100);border:2px solid var(--blue);border-radius:14px;padding:20px;text-align:center;min-width:160px}
+.flow-object-title{font-family:'Chip Display',system-ui,sans-serif;font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px}
+.flow-object-sub{font-size:11px;color:var(--n700)}
+.flow-object-selector{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.flow-obj-btn{font-size:10px;padding:3px 8px;border-radius:9999px;background:var(--n1200);border:1px solid var(--n1000);color:var(--n600);cursor:pointer;font-family:'Chip Mono',monospace;transition:all 0.15s ease}
+.flow-obj-btn:hover,.flow-obj-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(57,104,246,0.08)}
+.flow-fan{display:flex;flex-direction:column;align-items:center;gap:0;position:relative;width:60px}
+.flow-fan-line{width:2px;height:20px;background:var(--n900)}
+.flow-stores{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:500px}
+.flow-store{background:var(--n1200);border:1px solid var(--n1000);border-radius:8px;padding:10px 12px;transition:all 0.3s ease;display:flex;align-items:center;gap:8px}
+.flow-store.active{border-color:var(--green);background:rgba(122,219,18,0.04)}
+.flow-store-dot{width:8px;height:8px;border-radius:50%;background:var(--n900);transition:background 0.3s ease}
+.flow-store.active .flow-store-dot{background:var(--green)}
+.flow-store-name{font-size:12px;font-weight:500;color:var(--n600);transition:color 0.3s ease}
+.flow-store.active .flow-store-name{color:var(--n100)}
+.flow-store-role{font-size:10px;color:var(--n800);margin-top:2px;transition:color 0.3s ease}
+.flow-store.active .flow-store-role{color:var(--n700)}
+.flow-message{text-align:center;margin-top:24px;font-size:13px;color:var(--n700);max-width:600px}
+
+/* ─── SLIDE 5: Complete Architecture ─── */
+.arch-flow{display:flex;align-items:center;gap:12px;width:100%;max-width:1200px;justify-content:center}
+.arch-col{display:flex;flex-direction:column;gap:6px;align-items:center}
+.arch-label{font-family:'Chip Mono',monospace;font-size:10px;color:var(--n700);text-transform:uppercase;margin-bottom:6px;text-align:center}
+.arch-block{background:var(--n1200);border:1px solid var(--n1000);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--n600);text-align:center;transition:all 0.2s ease;cursor:default;min-width:100px}
+.arch-block:hover{border-color:var(--n800)}
+.arch-block.highlight{border-color:var(--y400);color:var(--n100);background:var(--n1100)}
+.arch-connector{color:var(--n800);font-size:16px;flex-shrink:0}
+.arch-center{background:var(--n1100);border:2px solid var(--y400);border-radius:14px;padding:16px 20px;text-align:center;min-width:140px}
+.arch-center-title{font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--y400)}
+.arch-center-sub{font-size:10px;color:var(--n700);margin-top:3px}
+.arch-memory{background:var(--n1100);border:1px solid var(--green);border-radius:14px;padding:14px;min-width:160px}
+.arch-memory-title{font-family:'Chip Display',system-ui,sans-serif;font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px;text-align:center}
+.arch-mem-list{display:flex;flex-direction:column;gap:3px}
+.arch-mem-item{font-size:9px;color:var(--n700);padding:2px 6px;border-radius:4px;background:var(--n1200);text-align:center}
+.arch-services{background:var(--n1200);border:1px solid var(--purple);border-radius:14px;padding:14px;min-width:130px}
+.arch-services-title{font-family:'Chip Display',system-ui,sans-serif;font-size:13px;font-weight:700;color:var(--purple);margin-bottom:6px;text-align:center}
+.arch-tagline{text-align:center;margin-top:32px;font-size:16px;color:var(--n600);max-width:700px}
+.arch-tagline strong{color:var(--y400)}
+
+@media(max-width:900px){
+  .slide{padding:40px 24px}
+  .title{font-size:32px}
+  .obj-grid,.mem-grid{grid-template-columns:repeat(2,1fr)}
+  .sync-flow{flex-direction:column}
+  .arch-flow{flex-wrap:wrap;justify-content:center}
+  .flow-container{flex-direction:column}
+  .flow-stores{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- SLIDE 1: Object Model -->
+<div class="slide active" data-slide="0">
+<div class="slide-header">
+<svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/><path d="M75.1837 40.9099H59.7998V0.28125H75.1837C87.4323 0.28125 94.922 7.88533 94.922 20.5956C94.922 33.3058 87.4323 40.9099 75.1837 40.9099ZM74.6031 34.5267C83.3701 34.5267 87.3743 29.6508 87.3743 20.5975C87.3743 11.5442 83.3682 6.6683 74.6031 6.6683H67.3456V34.5287H74.6031V34.5267Z" fill="white"/><path d="M112.334 41.7791C102.754 41.7791 96.6602 34.8716 96.6602 25.8183C96.6602 16.765 102.873 9.85742 112.16 9.85742C119.882 9.85742 124.467 13.9207 126.383 19.9575C127.08 22.2213 127.37 24.7173 127.37 27.2714V28.4323H104.148C104.322 32.2053 107.167 36.2686 112.334 36.2686C116.282 36.2686 118.314 34.0628 119.011 32.2053H126.791C125.107 37.4875 120.23 41.783 112.336 41.783L112.334 41.7791ZM104.15 22.9159H119.882C119.708 18.9107 116.979 15.3699 112.16 15.3699C107.341 15.3699 104.612 18.9107 104.148 22.9159H104.15Z" fill="white"/><path d="M133.935 10.7344L138.116 22.3417C139.451 25.8245 140.496 29.8297 141.367 33.0784H141.599C142.47 29.8278 143.515 25.8226 144.851 22.3417L149.031 10.7344H156.695L145.085 40.9147H137.885L126.273 10.7344H133.937H133.935Z" fill="white"/><path d="M178.087 24.5969H178.077C185.282 24.0145 189.91 19.2586 189.91 12.4691C189.91 5.21326 184.626 0.28125 176.558 0.28125H159.187V40.9099H166.734V24.6588H169.513L181.95 40.9099H190.864L178.089 24.5969H178.087ZM166.73 18.2737V6.66636H176.554C180.038 6.66636 182.36 8.98822 182.36 12.471C182.36 15.9538 180.038 18.2757 176.554 18.2757H166.73V18.2737Z" fill="white"/><path d="M205.648 41.7908C196.068 41.7908 189.974 34.8833 189.974 25.83C189.974 16.7767 196.186 9.86914 205.474 9.86914C213.196 9.86914 217.782 13.9324 219.696 19.9692C220.393 22.233 220.683 24.729 220.683 27.2831V28.444H197.461C197.636 32.217 200.481 36.2803 205.648 36.2803C209.596 36.2803 211.628 34.0745 212.325 32.217H220.105C218.421 37.4993 213.544 41.7947 205.65 41.7947L205.648 41.7908ZM197.461 22.9277H213.194C213.019 18.9225 210.291 15.3816 205.472 15.3816C200.653 15.3816 197.926 18.9225 197.459 22.9277H197.461Z" fill="white"/><path d="M227.24 10.7344L231.42 22.3417C232.756 25.8245 233.801 29.8297 234.672 33.0784H234.904C235.775 29.8278 236.82 25.8226 238.155 22.3417L242.336 10.7344H249.999L238.389 40.9147H231.19L219.58 10.7344H227.244H227.24Z" fill="white"/></svg>
+<span class="badge">Data Architecture</span>
+</div>
+<div class="eyebrow">Unified Schema</div>
+<h1 class="title">The DevRev Object Model</h1>
+<p class="subtitle">A unified schema connecting every customer, product, and team interaction</p>
+<div class="obj-grid">
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--purple)"></div><span class="obj-card-title">People & Orgs</span></div><div class="obj-card-list"><span class="obj-card-item">Account</span><span class="obj-card-item">Contact</span><span class="obj-card-item">Dev User</span></div></div>
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--green)"></div><span class="obj-card-title">Product</span></div><div class="obj-card-list"><span class="obj-card-item">Product</span><span class="obj-card-item">Capability</span><span class="obj-card-item">Feature</span><span class="obj-card-item">Enhancement</span><span class="obj-card-item">Runnable</span><span class="obj-card-item">Linkable</span></div></div>
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--blue)"></div><span class="obj-card-title">Work Items</span></div><div class="obj-card-list"><span class="obj-card-item">Issue</span><span class="obj-card-item">Ticket</span><span class="obj-card-item">Incident</span><span class="obj-card-item">Alert</span><span class="obj-card-item">Task</span><span class="obj-card-item">Code Change</span></div></div>
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--orange)"></div><span class="obj-card-title">Sales & CRM</span></div><div class="obj-card-list"><span class="obj-card-item">Opportunity</span><span class="obj-card-item">Meeting</span><span class="obj-card-item">Implementation</span><span class="obj-card-item">POC</span></div></div>
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--red)"></div><span class="obj-card-title">Support</span></div><div class="obj-card-list"><span class="obj-card-item">Conversation</span><span class="obj-card-item">Article</span></div></div>
+<div class="obj-card"><div class="obj-card-header"><div class="obj-card-dot" style="background:var(--y400)"></div><span class="obj-card-title">Planning</span></div><div class="obj-card-list"><span class="obj-card-item">Sprint</span><span class="obj-card-item">Theme</span><span class="obj-card-item">Vista</span><span class="obj-card-item">Release</span><span class="obj-card-item">Stream</span></div></div>
+</div>
+<div class="obj-stats">
+<div class="obj-stat"><div class="obj-stat-num">45</div><div class="obj-stat-label">Objects</div></div>
+<div class="obj-stat"><div class="obj-stat-num">92</div><div class="obj-stat-label">Relationships</div></div>
+<div class="obj-stat"><div class="obj-stat-num">12</div><div class="obj-stat-label">Categories</div></div>
+</div>
+<a href="devrev-objects-diagram.html" target="_blank" style="margin-top:20px;display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:9999px;background:rgba(255,230,0,0.08);border:1px solid rgba(255,230,0,0.2);color:var(--y400);font-family:'Chip Mono',monospace;font-size:11px;text-decoration:none;text-transform:uppercase;transition:all 0.2s ease" onmouseover="this.style.background='rgba(255,230,0,0.12)'" onmouseout="this.style.background='rgba(255,230,0,0.08)'">Explore interactive diagram →</a>
+</div>
+
+<!-- SLIDE 2: AirSync -->
+<div class="slide" data-slide="1">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Ingestion</span></div>
+<div class="eyebrow">Computer AirSync</div>
+<h1 class="title">Bidirectional Data Ingestion</h1>
+<p class="subtitle">Patented sync engine that reads AND writes - keeping external systems and Memory in continuous sync</p>
+<div class="sync-flow">
+<div>
+<div class="sync-sources">
+<div class="sync-source"><div class="sync-source-icon">💼</div>CRM</div>
+<div class="sync-source"><div class="sync-source-icon">🎫</div>Support</div>
+<div class="sync-source"><div class="sync-source-icon">🔧</div>Engineering</div>
+<div class="sync-source"><div class="sync-source-icon">💬</div>Collaboration</div>
+<div class="sync-source"><div class="sync-source-icon">📄</div>Documents</div>
+<div class="sync-source"><div class="sync-source-icon">🖥️</div>ITSM</div>
+</div>
+</div>
+<div class="sync-arrow"><div class="sync-arrow-line forward"></div><span class="sync-arrow-label">2-WAY SYNC</span><div class="sync-arrow-line backward"></div></div>
+<div class="sync-engine"><div class="sync-engine-title">AirSync</div><div class="sync-engine-steps"><span class="sync-step">1. Connect</span><span class="sync-step">2. Extract</span><span class="sync-step">3. Transform</span><span class="sync-step">4. Load</span></div></div>
+<div class="sync-arrow"><div class="sync-arrow-line forward"></div></div>
+<div class="sync-dest"><div class="sync-dest-title">Shared Memory</div><div class="sync-dest-sub">Objects, relationships, permissions preserved</div></div>
+</div>
+<div class="sync-points">
+<div class="sync-point"><div class="sync-point-title">Lossless transformation</div><div class="sync-point-desc">Preserves context, relationships, and permissions from source systems</div></div>
+<div class="sync-point"><div class="sync-point-title">Near-real-time</div><div class="sync-point-desc">Periodic sync runs (default hourly) keep data continuously fresh</div></div>
+<div class="sync-point"><div class="sync-point-title">1:1 object mapping</div><div class="sync-point-desc">External objects map directly to DevRev objects with subtypes maintained</div></div>
+<div class="sync-point"><div class="sync-point-title">Structured + unstructured</div><div class="sync-point-desc">Tickets, deals, issues alongside docs, emails, chats, and transcripts</div></div>
+<div class="sync-point"><div class="sync-point-title">Permission-aware</div><div class="sync-point-desc">Security structures from source systems stay intact through sync</div></div>
+<div class="sync-point"><div class="sync-point-title">Source of truth tracking</div><div class="sync-point-desc">Every record knows its origin system for conflict resolution</div></div>
+</div>
+</div>
+
+<!-- SLIDE 3: Memory -->
+<div class="slide" data-slide="2">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Memory</span></div>
+<div class="eyebrow">Computer Memory</div>
+<h1 class="title">8 Datastores</h1>
+<p class="subtitle">Far more than a database - a composed stack enabling search, queries, relationships, permissions, and temporal analysis</p>
+<div class="mem-grid" id="mem-grid">
+<div class="mem-card" data-mem="0"><div class="mem-card-num">01</div><div class="mem-card-name">Context Registry</div><div class="mem-card-tag">The map legend for AI</div><div class="mem-card-desc">Stores annotations describing the purpose and usage of structured data elements. Transforms static schemas into actionable business intelligence that AI agents can reason over.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="1"><div class="mem-card-num">02</div><div class="mem-card-name">Data Warehouse</div><div class="mem-card-tag">Large-scale analytics</div><div class="mem-card-desc">Stores large, structured datasets optimized for economic, large-scale analytics. Powers NL2SQL queries, reporting dashboards, and batch aggregations across the full dataset.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="2"><div class="mem-card-num">03</div><div class="mem-card-name">Relational Database</div><div class="mem-card-tag">Transactional data</div><div class="mem-card-desc">Stores highly structured, transactional data with ACID guarantees. The system of record for object state, field values, and real-time reads/writes.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="3"><div class="mem-card-num">04</div><div class="mem-card-name">Inverted Keyword Index</div><div class="mem-card-tag">Syntactic search</div><div class="mem-card-desc">Powers keyword and syntactic search across all objects. Enables exact-match lookups, field-specific filtering, and traditional full-text search capabilities.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="4"><div class="mem-card-num">05</div><div class="mem-card-name">Vector Database</div><div class="mem-card-tag">Semantic search</div><div class="mem-card-desc">Stores vector embeddings for meaning-based search. Surfaces semantically similar objects even when keywords don't match - finds the "intent" behind queries.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="5"><div class="mem-card-num">06</div><div class="mem-card-name">Graph Database</div><div class="mem-card-tag">Relationships & documents</div><div class="mem-card-desc">Stores relationships and extensible connections between data entities, as well as documents and files. The connective tissue that maps how everything relates.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="6"><div class="mem-card-num">07</div><div class="mem-card-name">Permissions Store</div><div class="mem-card-tag">Access control</div><div class="mem-card-desc">Maintains permission mapping of every graph entity, field, and user. Ensures AI answers respect who is asking - data leakage is architecturally impossible.</div><div class="mem-card-hint">Click to expand</div></div>
+<div class="mem-card" data-mem="7"><div class="mem-card-num">08</div><div class="mem-card-name">Time Series Database</div><div class="mem-card-tag">Temporal analysis</div><div class="mem-card-desc">Stores time-indexed data for temporal analysis and "time travel". Enables questions like "what changed last week" and complete change history across all objects.</div><div class="mem-card-hint">Click to expand</div></div>
+</div>
+</div>
+
+<!-- SLIDE 4: Data Flow -->
+<div class="slide" data-slide="3">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Data Flow</span></div>
+<div class="eyebrow">Object Indexing</div>
+<h1 class="title">How Objects Flow Into Memory</h1>
+<p class="subtitle">Every object is stored across multiple datastores simultaneously - enabling any type of query or AI reasoning</p>
+<div class="flow-container">
+<div class="flow-object">
+<div class="flow-object-title">Ingested Object</div>
+<div class="flow-object-sub">Select an object type:</div>
+<div class="flow-object-selector">
+<button class="flow-obj-btn active" data-obj="opportunity">Opportunity</button>
+<button class="flow-obj-btn" data-obj="ticket">Ticket</button>
+<button class="flow-obj-btn" data-obj="issue">Issue</button>
+<button class="flow-obj-btn" data-obj="article">Article</button>
+</div>
+</div>
+<div class="flow-fan"><div style="font-size:20px;color:var(--y400)">→</div></div>
+<div class="flow-stores" id="flow-stores">
+<div class="flow-store active" data-store="relational"><div class="flow-store-dot"></div><div><div class="flow-store-name">Relational DB</div><div class="flow-store-role" id="role-relational">Fields, stage, owner, amounts</div></div></div>
+<div class="flow-store active" data-store="warehouse"><div class="flow-store-dot"></div><div><div class="flow-store-name">Data Warehouse</div><div class="flow-store-role" id="role-warehouse">Analytics-optimized copy for reporting</div></div></div>
+<div class="flow-store active" data-store="keyword"><div class="flow-store-dot"></div><div><div class="flow-store-name">Keyword Index</div><div class="flow-store-role" id="role-keyword">Title, description, field values indexed</div></div></div>
+<div class="flow-store active" data-store="vector"><div class="flow-store-dot"></div><div><div class="flow-store-name">Vector DB</div><div class="flow-store-role" id="role-vector">Semantic embedding of content</div></div></div>
+<div class="flow-store active" data-store="graph"><div class="flow-store-dot"></div><div><div class="flow-store-name">Graph DB</div><div class="flow-store-role" id="role-graph">Links to Account, Contacts, Meetings</div></div></div>
+<div class="flow-store active" data-store="permissions"><div class="flow-store-dot"></div><div><div class="flow-store-name">Permissions Store</div><div class="flow-store-role" id="role-permissions">Owner visibility, team access rules</div></div></div>
+<div class="flow-store active" data-store="timeseries"><div class="flow-store-dot"></div><div><div class="flow-store-name">Time Series DB</div><div class="flow-store-role" id="role-timeseries">Stage changes, amount updates over time</div></div></div>
+<div class="flow-store active" data-store="context"><div class="flow-store-dot"></div><div><div class="flow-store-name">Context Registry</div><div class="flow-store-role" id="role-context">Field meanings, valid values, business logic</div></div></div>
+</div>
+</div>
+<div class="flow-message">One object enters through AirSync. It is simultaneously indexed across all 8 datastores - enabling keyword search, semantic understanding, relationship traversal, permission enforcement, temporal queries, and analytics from a single ingestion event.</div>
+</div>
+
+<!-- SLIDE 5: Complete Architecture -->
+<div class="slide" data-slide="4">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Complete</span></div>
+<div class="eyebrow">End to End</div>
+<h1 class="title">The Complete Picture</h1>
+<p class="subtitle">From external systems to trusted AI answers - the full data pipeline</p>
+<div class="arch-flow">
+<div class="arch-col">
+<div class="arch-label">External Systems</div>
+<div class="arch-block" data-section="sources">💼 CRM</div>
+<div class="arch-block" data-section="sources">🎫 Support</div>
+<div class="arch-block" data-section="sources">🔧 Engineering</div>
+<div class="arch-block" data-section="sources">💬 Collaboration</div>
+<div class="arch-block" data-section="sources">📄 Documents</div>
+<div class="arch-block" data-section="sources">🖥️ ITSM</div>
+</div>
+<div class="arch-connector">⟷</div>
+<div class="arch-col">
+<div class="arch-label">Sync Engine</div>
+<div class="arch-center" data-section="airsync">
+<div class="arch-center-title">AirSync</div>
+<div class="arch-center-sub">Bidirectional<br>Permission-aware<br>Near-real-time</div>
+</div>
+</div>
+<div class="arch-connector">→</div>
+<div class="arch-col">
+<div class="arch-label">Object Model</div>
+<div style="background:var(--n1100);border:1px solid var(--n900);border-radius:14px;padding:14px;text-align:center" data-section="objects">
+<div style="font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--n100);margin-bottom:6px">Shared Memory</div>
+<div style="font-size:10px;color:var(--n700)">45 objects<br>92 relationships<br>Unified schema</div>
+</div>
+</div>
+<div class="arch-connector">→</div>
+<div class="arch-col">
+<div class="arch-label">Memory</div>
+<div class="arch-memory" data-section="memory">
+<div class="arch-memory-title">8 Datastores</div>
+<div class="arch-mem-list">
+<div class="arch-mem-item">Context Registry</div>
+<div class="arch-mem-item">Data Warehouse</div>
+<div class="arch-mem-item">Relational DB</div>
+<div class="arch-mem-item">Keyword Index</div>
+<div class="arch-mem-item">Vector DB</div>
+<div class="arch-mem-item">Graph DB</div>
+<div class="arch-mem-item">Permissions</div>
+<div class="arch-mem-item">Time Series</div>
+</div>
+</div>
+</div>
+<div class="arch-connector">→</div>
+<div class="arch-col">
+<div class="arch-label">Services</div>
+<div class="arch-services" data-section="services">
+<div class="arch-services-title">Foundational</div>
+<div class="arch-mem-list">
+<div class="arch-mem-item">Search</div>
+<div class="arch-mem-item">Analytics</div>
+<div class="arch-mem-item">Automations</div>
+</div>
+</div>
+</div>
+<div class="arch-connector">→</div>
+<div class="arch-col">
+<div class="arch-label">AI</div>
+<div style="background:var(--n1100);border:2px solid var(--purple);border-radius:14px;padding:14px;text-align:center" data-section="ai">
+<div style="font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--purple);margin-bottom:4px">Computer</div>
+<div style="font-size:10px;color:var(--n700)">AI Agents<br>Trusted answers<br>Safe actions</div>
+</div>
+</div>
+</div>
+<div class="arch-tagline"><strong>DevRev assembles enterprise context before AI inference begins.</strong><br><span style="font-size:13px;color:var(--n800)">Pre-computed context means the AI already knows the business before you ask.</span></div>
+</div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-dots" id="nav-dots"></div>
+<div class="slide-num" id="slide-num">1 / 5</div>
+<div class="nav-hint">← → to navigate</div>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const totalSlides=slides.length;
+let current=0;
+
+function goTo(n){
+if(n<0||n>=totalSlides||n===current)return;
+const goingForward=n>current;
+const old=current;
+// Position the incoming slide on the correct side before animating
+slides[n].style.transition='none';
+slides[n].style.transform=goingForward?'translateX(100%)':'translateX(-100%)';
+slides[n].style.opacity='0';
+// Force reflow
+slides[n].offsetHeight;
+// Remove active from old, add prev direction
+slides[old].classList.remove('active');
+slides[old].style.transition='all 0.5s cubic-bezier(0.16,1,0.3,1)';
+slides[old].style.transform=goingForward?'translateX(-100%)':'translateX(100%)';
+slides[old].style.opacity='0';
+slides[old].style.pointerEvents='none';
+// Animate in new slide
+slides[n].style.transition='all 0.5s cubic-bezier(0.16,1,0.3,1)';
+slides[n].style.transform='translateX(0)';
+slides[n].style.opacity='1';
+slides[n].style.pointerEvents='all';
+slides[n].classList.add('active');
+current=n;
+updateNav();
+}
+
+function updateNav(){
+document.getElementById('slide-num').textContent=`${current+1} / ${totalSlides}`;
+document.querySelectorAll('.nav-dot').forEach((d,i)=>{d.classList.toggle('active',i===current);});
+}
+
+// Build dots
+const dotsEl=document.getElementById('nav-dots');
+for(let i=0;i<totalSlides;i++){const d=document.createElement('div');d.className='nav-dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
+
+// Keyboard nav
+document.addEventListener('keydown',e=>{
+if(e.key==='ArrowRight'||e.key===' ')goTo(current+1);
+if(e.key==='ArrowLeft')goTo(current-1);
+});
+
+// Slide 3: Memory cards expand
+document.querySelectorAll('.mem-card').forEach(card=>{
+card.addEventListener('click',()=>{
+const wasExpanded=card.classList.contains('expanded');
+document.querySelectorAll('.mem-card').forEach(c=>c.classList.remove('expanded'));
+if(!wasExpanded)card.classList.add('expanded');
+});
+});
+
+// Slide 4: Object type selector
+const flowData={
+opportunity:{relational:'Fields, stage, owner, ACV, close date',warehouse:'Pipeline analytics, win rate calculations',keyword:'Deal name, account, notes indexed',vector:'Semantic embedding of deal context',graph:'Links to Account, Contacts, Meetings, POCs',permissions:'Owner, team, manager visibility rules',timeseries:'Stage progression, amount changes over time',context:'Field meanings: what "stage" values mean'},
+ticket:{relational:'Priority, status, assignee, SLA timer',warehouse:'Volume trends, resolution time analytics',keyword:'Subject, description, tags indexed',vector:'Semantic match to similar past tickets',graph:'Links to Contact, Account, Issue, Conversation',permissions:'Agent, team, customer visibility',timeseries:'Status changes, response times, reopens',context:'Priority definitions, SLA rules, routing logic'},
+issue:{relational:'Type, priority, assignee, sprint, points',warehouse:'Velocity metrics, burndown analytics',keyword:'Title, description, acceptance criteria',vector:'Semantic similarity to other issues/tickets',graph:'Links to Feature, Enhancement, Sprint, Code Changes',permissions:'Team, space-level access control',timeseries:'Status transitions, sprint membership changes',context:'Issue types, stage definitions, workflow rules'},
+article:{relational:'Title, status, author, publish date',warehouse:'Usage analytics, helpfulness scores',keyword:'Full-text content indexed for exact search',vector:'Dense embeddings of article meaning for Q&A',graph:'Links to Feature, Directory, Product',permissions:'Public vs internal, audience scoping',timeseries:'Edit history, view count over time',context:'Content structure, audience metadata, freshness rules'},
+};
+
+document.querySelectorAll('.flow-obj-btn').forEach(btn=>{
+btn.addEventListener('click',()=>{
+document.querySelectorAll('.flow-obj-btn').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+const obj=btn.dataset.obj;
+const data=flowData[obj];
+document.getElementById('role-relational').textContent=data.relational;
+document.getElementById('role-warehouse').textContent=data.warehouse;
+document.getElementById('role-keyword').textContent=data.keyword;
+document.getElementById('role-vector').textContent=data.vector;
+document.getElementById('role-graph').textContent=data.graph;
+document.getElementById('role-permissions').textContent=data.permissions;
+document.getElementById('role-timeseries').textContent=data.timeseries;
+document.getElementById('role-context').textContent=data.context;
+// Flash animation
+document.querySelectorAll('.flow-store').forEach(s=>{s.classList.remove('active');});
+setTimeout(()=>{document.querySelectorAll('.flow-store').forEach(s=>{s.classList.add('active');});},100);
+});
+});
+
+// Slide 5: Hover highlighting
+document.querySelectorAll('[data-section]').forEach(el=>{
+el.addEventListener('mouseenter',()=>{
+const sec=el.dataset.section;
+document.querySelectorAll(`[data-section="${sec}"]`).forEach(e=>e.classList.add('highlight'));
+});
+el.addEventListener('mouseleave',()=>{
+document.querySelectorAll('.arch-block,.arch-center,[data-section]').forEach(e=>e.classList.remove('highlight'));
+});
+});
+
+// Touch/swipe support
+let touchStartX=0;
+document.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchStartX;if(dx<-50)goTo(current+1);if(dx>50)goTo(current-1);});
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    { "source": "/customer/:name", "destination": "/customer.html" },
+    { "source": "/api/:path*", "destination": "/api/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/customer/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
+  ]
+}

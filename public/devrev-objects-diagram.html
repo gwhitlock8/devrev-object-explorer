@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevRev Object Model - Complete Interactive Explorer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 42' fill='none'%3E%3Cpath d='M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z' fill='%23FFE600'/%3E%3Cpath d='M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z' fill='%23FFE600'/%3E%3Cpath d='M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z' fill='%23FFE600'/%3E%3Cpath d='M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z' fill='%23FFE600'/%3E%3C/svg%3E">
+  <style>
+    @font-face{font-family:'Chip Display';src:url('fonts/ChipDisp-Bold.otf') format('opentype');font-weight:700}
+    @font-face{font-family:'Chip Display';src:url('fonts/ChipDisp-Semibold.otf') format('opentype');font-weight:600}
+    @font-face{font-family:'Chip Text';src:url('fonts/ChipText-Regular.otf') format('opentype');font-weight:400}
+    @font-face{font-family:'Chip Text';src:url('fonts/ChipText-Medium.otf') format('opentype');font-weight:500}
+    @font-face{font-family:'Chip Text';src:url('fonts/ChipText-Semibold.otf') format('opentype');font-weight:600}
+    @font-face{font-family:'Chip Mono';src:url('fonts/ChipMono-Medium.otf') format('opentype');font-weight:500}
+
+    :root{--n100:#FFF;--n200:#FBFBFB;--n300:#F4F4F4;--n400:#E8E8E8;--n500:#CECECE;--n600:#A5A2A4;--n700:#7A7579;--n800:#514C4F;--n900:#3E3C3D;--n1000:#302E2F;--n1100:#211F20;--n1200:#191616;--n1300:#161616;--y400:#FFE600;--y100:#FFFCD9;--blue:#3968F6;--purple:#8854F6;--green:#7ADB12;--orange:#F35106;--red:#C90651;--cyan:#5996FF;--panel-width:360px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Chip Text',system-ui,sans-serif;background:var(--n1300);color:var(--n100);min-height:100vh;overflow-x:hidden;letter-spacing:-0.015em;line-height:1.2}
+
+    .app-layout{display:flex;min-height:100vh;transition:padding-right 0.4s cubic-bezier(0.16,1,0.3,1)}
+    .app-layout.panel-open{padding-right:var(--panel-width)}
+    .app-content{flex:1;min-width:0;position:relative}
+
+    .header{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--n1000);background:rgba(22,22,22,0.95);backdrop-filter:blur(16px);position:sticky;top:0;z-index:100}
+    .header-left{display:flex;align-items:center;gap:14px}
+    .header-divider{width:1px;height:18px;background:var(--n900)}
+    .computer-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:9999px;background:var(--n1100);border:1px solid var(--n900);font-family:'Chip Mono',monospace;font-size:11px;font-weight:500;color:var(--n600);text-transform:uppercase}
+    .pulse-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:dp 2s ease-in-out infinite}
+    @keyframes dp{0%,100%{opacity:1}50%{opacity:.3}}
+    .header-stats{font-family:'Chip Mono',monospace;font-size:11px;color:var(--n700);display:flex;gap:14px;text-transform:uppercase}
+    .header-stats .num{color:var(--y400)}
+
+    .main{padding:40px 28px;max-width:1400px;margin:0 auto;position:relative;z-index:1}
+
+    .hero{text-align:center;margin-bottom:32px}
+    .hero h1{font-family:'Chip Display',system-ui,sans-serif;font-size:42px;font-weight:700;line-height:.95;letter-spacing:.0075em;color:var(--n100);margin-bottom:10px}
+    .hero h1 span{color:var(--y400)}
+    .hero p{font-size:16px;color:var(--n700);max-width:480px;margin:0 auto 14px}
+    .hero-hint{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:9999px;background:var(--n1100);border:1px solid var(--n900);font-size:12px;color:var(--n700)}
+    .hero-hint .key{font-family:'Chip Mono',monospace;padding:2px 5px;border-radius:4px;background:var(--n1000);font-size:10px;color:var(--n600)}
+
+    /* Controls */
+    .controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+    .filter-chip{padding:5px 12px;border-radius:9999px;font-family:'Chip Text',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px solid var(--n900);background:transparent;color:var(--n700);cursor:pointer;transition:all .2s ease;display:flex;align-items:center;gap:5px}
+    .filter-chip:hover{border-color:var(--n700);color:var(--n500)}
+    .filter-chip.active{border-color:var(--y400);background:rgba(255,230,0,.06);color:var(--y400)}
+    .chip-dot{width:5px;height:5px;border-radius:50%}
+
+    .tier-toggle{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:28px}
+    .tier-btn{padding:6px 14px;border-radius:9999px;font-family:'Chip Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;border:1px solid var(--n900);background:transparent;color:var(--n700);cursor:pointer;transition:all .2s ease}
+    .tier-btn:hover{border-color:var(--n700);color:var(--n500)}
+    .tier-btn.active{border-color:var(--y400);background:rgba(255,230,0,.06);color:var(--y400)}
+
+    #svg-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+    .traveling-dot{fill:var(--green);filter:drop-shadow(0 0 3px rgba(122,219,18,.5))}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;position:relative;z-index:5}
+    @media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}.main{padding:20px 14px}.header{padding:12px 14px}.hero h1{font-size:28px}.app-layout.panel-open{padding-right:0}.detail-panel{width:100%}}
+    .app-layout.panel-open .grid{grid-template-columns:repeat(2,1fr)}
+    @media(min-width:1400px){.app-layout.panel-open .grid{grid-template-columns:repeat(3,1fr)}}
+
+    .category{border-radius:12px;padding:14px;border:1px solid var(--n1000);background:var(--n1200);transition:all .4s cubic-bezier(.16,1,.3,1)}
+    .category.dimmed{opacity:.1;transform:scale(.97)}
+    .category.highlighted{border-color:var(--n800)}
+    .category.hidden{display:none}
+    .category-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--n1000)}
+    .category-header-left{display:flex;align-items:center;gap:7px}
+    .category-dot{width:5px;height:5px;border-radius:50%}
+    .category-header h2{font-family:'Chip Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;color:var(--n700)}
+    .category-count{font-family:'Chip Mono',monospace;font-size:10px;color:var(--n800)}
+    .category-tier{font-family:'Chip Mono',monospace;font-size:9px;padding:2px 6px;border-radius:9999px;text-transform:uppercase}
+    .category-tier.primary{background:rgba(255,230,0,.08);color:var(--y400);border:1px solid rgba(255,230,0,.15)}
+    .category-tier.secondary{background:var(--n1100);color:var(--n700);border:1px solid var(--n1000)}
+    .objects-list{display:flex;flex-direction:column;gap:2px}
+
+    .object-node{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;border:1px solid transparent;cursor:pointer;transition:all .2s ease;position:relative}
+    .object-node:hover{background:var(--n1100);border-color:var(--n900)}
+    .object-node:hover .conn-count{opacity:1;transform:scale(1)}
+    .object-node.selected{background:var(--n1100);border-color:var(--y400);box-shadow:0 0 0 1px var(--y400)}
+    .object-node.connected{background:rgba(122,219,18,.04);border-color:var(--green)}
+    .object-node.dimmed{opacity:.06;pointer-events:none}
+    .object-node.secondary-node .object-name{color:var(--n500)}
+    .object-node.secondary-node .object-icon{opacity:.7}
+
+    .object-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--n1000)}
+    .object-node.selected .object-icon{background:rgba(255,230,0,.1)}
+    .object-node.connected .object-icon{background:rgba(122,219,18,.08)}
+    .object-details{flex:1;min-width:0}
+    .object-name{font-weight:600;font-size:13px;color:var(--n100)}
+    .object-desc{font-size:11px;color:var(--n700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .conn-count{position:absolute;top:-3px;right:-3px;min-width:14px;height:14px;padding:0 3px;border-radius:9999px;background:var(--n900);color:var(--n500);font-family:'Chip Mono',monospace;font-size:9px;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.5);transition:all .2s ease}
+    .rel-badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%) translateY(4px);font-family:'Chip Mono',monospace;font-size:9px;font-weight:500;padding:2px 7px;border-radius:9999px;background:var(--green);color:var(--n1300);white-space:nowrap;opacity:0;transition:all .3s cubic-bezier(.16,1,.3,1);z-index:20}
+    .object-node.connected .rel-badge{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    .detail-panel{position:fixed;right:0;top:0;bottom:0;width:var(--panel-width);background:var(--n1200);border-left:1px solid var(--n1000);z-index:90;transform:translateX(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column}
+    .detail-panel.visible{transform:translateX(0)}
+    .detail-panel-header{padding:18px 18px 12px;border-bottom:1px solid var(--n1000);flex-shrink:0}
+    .detail-panel-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+    .detail-panel-close{width:26px;height:26px;border-radius:7px;border:1px solid var(--n900);background:transparent;color:var(--n700);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s ease}
+    .detail-panel-close:hover{background:var(--n1000);color:var(--n100)}
+    .detail-panel-title{display:flex;align-items:center;gap:10px}
+    .panel-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--n1000);border:1px solid var(--n900)}
+    .panel-title-text h3{font-family:'Chip Display',system-ui,sans-serif;font-size:18px;font-weight:700;color:var(--n100)}
+    .panel-title-text p{font-size:12px;color:var(--n700);margin-top:1px}
+    .panel-meta{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+    .panel-meta-item{font-family:'Chip Mono',monospace;font-size:10px;padding:2px 8px;border-radius:9999px;background:var(--n1100);border:1px solid var(--n1000);color:var(--n600);text-transform:uppercase}
+    .panel-meta-item .num{color:var(--y400)}
+    .panel-meta-item.tier-primary{border-color:rgba(255,230,0,.2);color:var(--y400)}
+    .panel-meta-item.tier-secondary{color:var(--n700)}
+    .detail-body{flex:1;overflow-y:auto;padding:14px 18px 18px}
+    .panel-brief-text{font-size:13px;line-height:1.5;color:var(--n600);padding:10px 12px;border-radius:8px;background:var(--n1100);border:1px solid var(--n1000);margin-bottom:14px}
+    .detail-section-title{font-family:'Chip Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;color:var(--n700);margin-bottom:6px;margin-top:2px;display:flex;align-items:center;gap:6px}
+    .detail-section-title::after{content:'';flex:1;height:1px;background:var(--n1000)}
+    .detail-connections{display:flex;flex-direction:column;gap:3px;margin-bottom:14px}
+    .detail-connection{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:var(--n1100);border:1px solid transparent;cursor:pointer;transition:all .2s ease}
+    .detail-connection:hover{border-color:var(--n900);transform:translateX(2px)}
+    .dc-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;background:var(--n1000)}
+    .dc-info{flex:1;min-width:0}
+    .dc-target-name{font-weight:600;color:var(--n100);font-size:12px}
+    .dc-label{font-size:10px;color:var(--n700);margin-top:1px}
+    .dc-direction{font-family:'Chip Mono',monospace;font-size:9px;padding:2px 6px;border-radius:9999px;font-weight:500;text-transform:uppercase}
+    .dc-direction.out{background:rgba(122,219,18,.08);color:var(--green)}
+    .dc-direction.in{background:rgba(57,104,246,.08);color:var(--blue)}
+    .panel-footer{padding:10px 18px;border-top:1px solid var(--n1000);flex-shrink:0}
+    .breadcrumb{display:flex;align-items:center;gap:3px;overflow-x:auto}
+    .breadcrumb-item{font-family:'Chip Mono',monospace;font-size:10px;padding:2px 7px;border-radius:9999px;background:var(--n1100);cursor:pointer;white-space:nowrap;color:var(--n700);transition:all .15s ease}
+    .breadcrumb-item:hover{background:var(--n1000)}
+    .breadcrumb-item.current{background:rgba(255,230,0,.08);color:var(--y400);border:1px solid rgba(255,230,0,.2)}
+    .breadcrumb-sep{color:var(--n800);font-size:9px}
+    .tooltip{position:fixed;padding:5px 10px;border-radius:7px;background:var(--n1000);border:1px solid var(--n900);font-size:11px;color:var(--n600);pointer-events:none;opacity:0;transform:translateY(4px);transition:all .15s ease;z-index:300;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+    .tooltip.visible{opacity:1;transform:translateY(0)}
+    .tooltip strong{color:var(--n100)}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--n900);border-radius:2px}
+  </style>
+</head>
+<body>
+<div class="app-layout" id="app-layout"><div class="app-content">
+<header class="header"><div class="header-left">
+<svg width="90" height="15" viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/><path d="M75.1837 40.9099H59.7998V0.28125H75.1837C87.4323 0.28125 94.922 7.88533 94.922 20.5956C94.922 33.3058 87.4323 40.9099 75.1837 40.9099ZM74.6031 34.5267C83.3701 34.5267 87.3743 29.6508 87.3743 20.5975C87.3743 11.5442 83.3682 6.6683 74.6031 6.6683H67.3456V34.5287H74.6031V34.5267Z" fill="white"/><path d="M112.334 41.7791C102.754 41.7791 96.6602 34.8716 96.6602 25.8183C96.6602 16.765 102.873 9.85742 112.16 9.85742C119.882 9.85742 124.467 13.9207 126.383 19.9575C127.08 22.2213 127.37 24.7173 127.37 27.2714V28.4323H104.148C104.322 32.2053 107.167 36.2686 112.334 36.2686C116.282 36.2686 118.314 34.0628 119.011 32.2053H126.791C125.107 37.4875 120.23 41.783 112.336 41.783L112.334 41.7791ZM104.15 22.9159H119.882C119.708 18.9107 116.979 15.3699 112.16 15.3699C107.341 15.3699 104.612 18.9107 104.148 22.9159H104.15Z" fill="white"/><path d="M133.935 10.7344L138.116 22.3417C139.451 25.8245 140.496 29.8297 141.367 33.0784H141.599C142.47 29.8278 143.515 25.8226 144.851 22.3417L149.031 10.7344H156.695L145.085 40.9147H137.885L126.273 10.7344H133.937H133.935Z" fill="white"/><path d="M205.648 41.7908C196.068 41.7908 189.974 34.8833 189.974 25.83C189.974 16.7767 196.186 9.86914 205.474 9.86914C213.196 9.86914 217.782 13.9324 219.696 19.9692C220.393 22.233 220.683 24.729 220.683 27.2831V28.444H197.461C197.636 32.217 200.481 36.2803 205.648 36.2803C209.596 36.2803 211.628 34.0745 212.325 32.217H220.105C218.421 37.4993 213.544 41.7947 205.65 41.7947L205.648 41.7908ZM197.461 22.9277H213.194C213.019 18.9225 210.291 15.3816 205.472 15.3816C200.653 15.3816 197.926 18.9225 197.459 22.9277H197.461Z" fill="white"/><path d="M227.24 10.7344L231.42 22.3417C232.756 25.8245 233.801 29.8297 234.672 33.0784H234.904C235.775 29.8278 236.82 25.8226 238.155 22.3417L242.336 10.7344H249.999L238.389 40.9147H231.19L219.58 10.7344H227.244H227.24Z" fill="white"/><path d="M178.087 24.5969H178.077C185.282 24.0145 189.91 19.2586 189.91 12.4691C189.91 5.21326 184.626 0.28125 176.558 0.28125H159.187V40.9099H166.734V24.6588H169.513L181.95 40.9099H190.864L178.089 24.5969H178.087ZM166.73 18.2737V6.66636H176.554C180.038 6.66636 182.36 8.98822 182.36 12.471C182.36 15.9538 180.038 18.2757 176.554 18.2757H166.73V18.2737Z" fill="white"/></svg>
+<div class="header-divider"></div><div class="computer-badge"><span class="pulse-dot"></span>Computer</div></div>
+<div class="header-stats"><span><span class="num">45</span> objects</span><span><span class="num">92</span> relationships</span><span><span class="num">12</span> categories</span></div></header>
+
+<div class="main" id="main">
+<div class="hero"><h1>Object <span>Model</span></h1><p>The complete DevRev data model - 45 objects across 12 categories with full relationship mapping</p><div class="hero-hint">Click objects to explore <span class="key">ESC</span> to reset</div></div>
+
+<div class="tier-toggle"><button class="tier-btn active" data-tier="all">All objects</button><button class="tier-btn" data-tier="primary">Primary only</button><button class="tier-btn" data-tier="secondary">Secondary only</button></div>
+
+<div class="controls" id="controls">
+<button class="filter-chip active" data-filter="all">All</button>
+<button class="filter-chip" data-filter="people"><span class="chip-dot" style="background:var(--purple)"></span>People</button>
+<button class="filter-chip" data-filter="product"><span class="chip-dot" style="background:var(--green)"></span>Product</button>
+<button class="filter-chip" data-filter="work"><span class="chip-dot" style="background:var(--blue)"></span>Work</button>
+<button class="filter-chip" data-filter="sales"><span class="chip-dot" style="background:var(--orange)"></span>Sales</button>
+<button class="filter-chip" data-filter="support"><span class="chip-dot" style="background:var(--red)"></span>Support</button>
+<button class="filter-chip" data-filter="planning"><span class="chip-dot" style="background:var(--y400)"></span>Planning</button>
+<button class="filter-chip" data-filter="identity"><span class="chip-dot" style="background:var(--n600)"></span>Identity</button>
+<button class="filter-chip" data-filter="collaboration"><span class="chip-dot" style="background:var(--cyan)"></span>Collab</button>
+<button class="filter-chip" data-filter="knowledge"><span class="chip-dot" style="background:#A7FF49"></span>Knowledge</button>
+<button class="filter-chip" data-filter="integrations"><span class="chip-dot" style="background:#FFAD76"></span>Integrations</button>
+<button class="filter-chip" data-filter="operations"><span class="chip-dot" style="background:#FF93AC"></span>Operations</button>
+</div>
+
+<svg id="svg-canvas"><defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
+<div class="grid" id="object-grid"></div>
+</div></div>
+
+<div class="detail-panel" id="detail-panel"><div class="detail-panel-header"><div class="detail-panel-top"><div class="detail-panel-title"><div class="panel-icon" id="panel-icon"></div><div class="panel-title-text"><h3 id="panel-title"></h3><p id="panel-desc"></p></div></div><button class="detail-panel-close" id="panel-close">&times;</button></div><div class="panel-meta" id="panel-meta"></div></div><div class="detail-body"><div id="panel-brief"></div><div id="panel-outgoing"></div><div id="panel-incoming"></div></div><div class="panel-footer"><div class="breadcrumb" id="breadcrumb"></div></div></div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const categories=[
+{id:'people',label:'People & Orgs',dot:'var(--purple)',tier:'primary',objects:['Account','Contact','DevUser']},
+{id:'product',label:'Product Hierarchy',dot:'var(--green)',tier:'primary',objects:['Product','Capability','Feature','Enhancement','Runnable','Linkable']},
+{id:'work',label:'Work Items',dot:'var(--blue)',tier:'primary',objects:['Issue','Ticket','Incident','Alert','Task','CodeChange']},
+{id:'sales',label:'Sales & CRM',dot:'var(--orange)',tier:'primary',objects:['Opportunity','Meeting','Implementation','POC']},
+{id:'support',label:'Support & Comms',dot:'var(--red)',tier:'primary',objects:['Conversation','Article']},
+{id:'planning',label:'Planning',dot:'var(--y400)',tier:'primary',objects:['Sprint','Theme','Space','Vista','Stream','Release','Tag','Link','Todo']},
+{id:'identity',label:'Identity & Access',dot:'var(--n600)',tier:'secondary',objects:['Group','ServiceAccount','ObjectMember']},
+{id:'collaboration',label:'Collaboration',dot:'var(--cyan)',tier:'secondary',objects:['DM','Channel','Engagement','Interaction']},
+{id:'knowledge',label:'Knowledge & AI',dot:'#A7FF49',tier:'secondary',objects:['Directory','QA','AIAgent','Suggestion']},
+{id:'integrations',label:'Integrations',dot:'#FFAD76',tier:'secondary',objects:['SyncUnit','RevOrg']},
+{id:'operations',label:'Operations',dot:'#FF93AC',tier:'secondary',objects:['OnCallSchedule','Deployment']},
+];
+
+const meta={
+Account:{e:'🏢',d:'Customer or prospect organization',t:'primary',b:'Represents a company or organization that is a customer, prospect, or partner. Accounts are the central anchor for all commercial relationships - they link to opportunities, tickets, contacts, and implementations.'},
+Contact:{e:'👤',d:'Rev User / external person',t:'primary',b:'An individual person external to your organization, typically associated with a customer Account. Contacts represent champions, decision-makers, end users, or support requesters.'},
+DevUser:{e:'👩‍💻',d:'Internal employee',t:'primary',b:'An internal team member who works within DevRev. Dev Users are assigned issues and tasks, author code changes, and participate in sprints.'},
+Product:{e:'📦',d:'Top-level offering',t:'primary',b:'The highest level in the product hierarchy. A Product represents a distinct offering your company sells or maintains.'},
+Capability:{e:'⚙️',d:'Functional area',t:'primary',b:'A major functional area within a Product. Capabilities group related Features together.'},
+Feature:{e:'🔧',d:'Specific functionality',t:'primary',b:'A discrete piece of functionality that users interact with. Features are the most granular product unit that customers care about.'},
+Enhancement:{e:'🚀',d:'Epic / roadmap item',t:'primary',b:'A planned improvement or new capability - similar to an Epic. Enhancements represent roadmap items broken into Issues for execution.'},
+Runnable:{e:'🖥️',d:'Microservice / Lambda',t:'primary',b:'A deployable service or function. Runnables serve Features, depend on Linkables, receive Code Changes, and are monitored by Alerts.'},
+Linkable:{e:'🔗',d:'Shared library',t:'primary',b:'A shared library, SDK, or dependency that Runnables consume. Changes to a Linkable can cascade across services.'},
+Issue:{e:'🐛',d:'Internal dev work',t:'primary',b:'The core unit of engineering work - bugs, stories, or technical tasks. Issues apply to Features, are owned by Dev Users, and resolved by Code Changes.'},
+Ticket:{e:'🎫',d:'Customer-facing request',t:'primary',b:'A customer-facing request, bug report, or support case. Tickets originate from Contacts and relate to Accounts.'},
+Incident:{e:'🚨',d:'Outage / ops issue',t:'primary',b:'An operational disruption. Incidents are triggered by Alerts, relate to Tickets, and affect specific Runnables.'},
+Alert:{e:'🔔',d:'System signal',t:'primary',b:'An automated system signal - threshold breach, anomaly, or health check failure. Alerts monitor Runnables and escalate into Incidents.'},
+Task:{e:'✅',d:'Lightweight to-do',t:'primary',b:'A lightweight, actionable to-do item. Tasks are subtasks of Issues, assigned to Dev Users, and tracked in Sprints.'},
+CodeChange:{e:'💻',d:'PR / merge request',t:'primary',b:'A pull request or merge request. Code Changes resolve Issues and deploy to Runnables.'},
+Opportunity:{e:'💰',d:'Active sales deal',t:'primary',b:'An active sales deal in your pipeline. Opportunities belong to Accounts, have Contact champions, and are validated by POCs.'},
+Meeting:{e:'📅',d:'Sales / CS call',t:'primary',b:'A scheduled call or meeting with external stakeholders. Meetings involve Contacts and relate to Opportunities.'},
+Implementation:{e:'🛠️',d:'Customer onboarding',t:'primary',b:'A structured onboarding or deployment project. Implementations onboard Accounts, generate Issues, and reference Articles.'},
+POC:{e:'🔬',d:'Proof of Concept',t:'primary',b:'A proof of concept or technical evaluation. POCs validate Opportunities and test specific Features.'},
+Conversation:{e:'💬',d:'Live support chat',t:'primary',b:'A real-time support interaction. Conversations involve Contacts and can be converted into Tickets.'},
+Article:{e:'📄',d:'Knowledge base doc',t:'primary',b:'A knowledge base article or help doc. Articles document Features and are referenced by Implementations.'},
+Sprint:{e:'🏃',d:'Time-boxed work period',t:'primary',b:'A time-boxed iteration for delivering work. Sprints contain Issues and Tasks.'},
+Theme:{e:'🎯',d:'High-level roadmap',t:'primary',b:'A strategic initiative that groups related Enhancements toward a common business objective.'},
+Space:{e:'🌐',d:'Team workspace scoping work',t:'secondary',b:'Team-level workspaces that scope issues, sprints, vistas, and roles into bounded contexts. Different teams operate independently with their own workflows and permissions.'},
+Vista:{e:'👁️',d:'Saved view / board configuration',t:'secondary',b:'Saved views or board configurations such as sprint boards, support inboxes, or custom filtered lists. They define how work items are displayed and filtered.'},
+Stream:{e:'🌊',d:'Long-lived work track',t:'secondary',b:'Longer-lived work tracks that span multiple sprints, providing continuity for ongoing initiatives and enabling capacity planning.'},
+Release:{e:'🏷️',d:'Planned release with dates',t:'secondary',b:'Planned software releases with target dates, included changes, and approval gates. They aggregate Code Changes and Issues into a shippable unit.'},
+Tag:{e:'🏷️',d:'Categorization label',t:'secondary',b:'Flexible categorization labels applied to virtually any object for filtering, grouping, and automation triggers.'},
+Link:{e:'🔀',d:'Directional relationship between objects',t:'secondary',b:'Explicit, typed, directional relationships between any two objects (blocks, duplicates, relates to, parent of). They form the connective tissue of the object graph.'},
+Todo:{e:'📝',d:'Personal next-action item',t:'secondary',b:'Lightweight personal action items that don\'t warrant a full Issue. Quick reminders, follow-ups from meetings, or small actions.'},
+Group:{e:'👥',d:'Member collection for access control',t:'secondary',b:'Collections of DevUsers and Service Accounts used for role-based access control and team organization. They can be assigned permissions on Spaces and other objects.'},
+ServiceAccount:{e:'🤖',d:'Non-human programmatic identity',t:'secondary',b:'Non-human identities used by integrations and automated workflows to authenticate and perform actions. They have API credentials and can be members of Groups.'},
+ObjectMember:{e:'🔗',d:'Membership binding users to objects',t:'secondary',b:'Join records linking a DevUser or Group to any object with a specific role (owner, reviewer, watcher). Enables flexible multi-membership.'},
+DM:{e:'💬',d:'Internal direct message',t:'secondary',b:'Private message threads between DevUsers for internal communication. They exist outside the context of any specific work item.'},
+Channel:{e:'📢',d:'Persistent named chat space',t:'secondary',b:'Persistent, named group chat spaces for team-wide or topic-based discussions. They can be scoped to a Space.'},
+Engagement:{e:'📊',d:'Time-bound engagement record',t:'secondary',b:'Structured, time-bound interactions with customers such as onboarding programs, QBRs, or escalation periods. They tie together multiple meetings and conversations.'},
+Interaction:{e:'⚡',d:'Immutable fact from external channel',t:'secondary',b:'Immutable event records from external channels - email opens, webinar attendance, form submissions, ad clicks. They feed engagement scoring and attribution.'},
+Directory:{e:'📁',d:'Article collection / folder',t:'secondary',b:'Organize Articles into hierarchical folder structures within the knowledge base. Support nesting for multi-level categorization.'},
+QA:{e:'❓',d:'Knowledge base Q&A pair',t:'secondary',b:'Structured Q&A pairs providing direct answers to common queries. Surfaced by AI Agents during support conversations.'},
+AIAgent:{e:'🧠',d:'Configured AI agent with skills',t:'secondary',b:'Configured autonomous agents with defined goals, skills, and knowledge sources. They handle conversations, suggest answers, and triage work items.'},
+Suggestion:{e:'💡',d:'Knowledge recommendation',t:'secondary',b:'System or AI-generated recommendations proposing actions like linking tickets to known issues or updating articles. Require human approval.'},
+SyncUnit:{e:'🔄',d:'External system sync connection',t:'secondary',b:'AirDrop connections to external systems (GitHub, Jira, Salesforce), defining data synchronization, mapping, and transformation rules.'},
+RevOrg:{e:'🏢',d:'Customer workspace / organization',t:'secondary',b:'Customer-side organizations that group contacts and interactions. They map to an Account but capture the customer\'s own organizational structure.'},
+OnCallSchedule:{e:'📟',d:'On-call rotation',t:'secondary',b:'Time-based rotations specifying which DevUsers or Groups respond to incidents during specific windows. Support escalation policies and overrides.'},
+Deployment:{e:'🚀',d:'Deployment event',t:'secondary',b:'Specific deployment events of Runnables to environments - what was deployed, when, by whom, and the resulting status. Enable incident correlation.'},
+};
+
+const relationships=[
+// Primary - People
+{from:'Contact',to:'Account',label:'associated with'},{from:'Contact',to:'Conversation',label:'participates in'},{from:'Contact',to:'Opportunity',label:'champion of'},{from:'DevUser',to:'Issue',label:'owns / works on'},{from:'DevUser',to:'Task',label:'assigned to'},
+// Primary - Product
+{from:'Product',to:'Capability',label:'contains'},{from:'Capability',to:'Feature',label:'contains'},{from:'Feature',to:'Enhancement',label:'drives'},{from:'Runnable',to:'Feature',label:'serves'},{from:'Runnable',to:'Linkable',label:'depends on'},
+// Primary - Work
+{from:'Issue',to:'Feature',label:'applies to'},{from:'Enhancement',to:'Issue',label:'broken into'},{from:'Task',to:'Issue',label:'subtask of'},{from:'CodeChange',to:'Issue',label:'resolves'},{from:'CodeChange',to:'Runnable',label:'deploys to'},{from:'Ticket',to:'Enhancement',label:'related to'},{from:'Ticket',to:'Account',label:'related to'},{from:'Ticket',to:'Contact',label:'filed by'},{from:'Incident',to:'Ticket',label:'related to'},{from:'Incident',to:'Runnable',label:'affects'},{from:'Alert',to:'Incident',label:'escalated to'},{from:'Alert',to:'Runnable',label:'monitors'},
+// Primary - Sales
+{from:'Opportunity',to:'Account',label:'belongs to'},{from:'Meeting',to:'Opportunity',label:'related to'},{from:'Meeting',to:'Contact',label:'involves'},{from:'Meeting',to:'Account',label:'scheduled for'},{from:'Implementation',to:'Issue',label:'has issues'},{from:'Implementation',to:'Article',label:'references'},{from:'Implementation',to:'Account',label:'onboards'},{from:'POC',to:'Opportunity',label:'validates'},{from:'POC',to:'Feature',label:'tests'},
+// Primary - Support
+{from:'Conversation',to:'Ticket',label:'converted to'},{from:'Article',to:'Feature',label:'documents'},
+// Primary - Planning
+{from:'Theme',to:'Enhancement',label:'groups'},{from:'Sprint',to:'Issue',label:'contains'},{from:'Sprint',to:'Task',label:'contains'},
+// Secondary - Planning expanded
+{from:'Space',to:'Issue',label:'contains'},{from:'Space',to:'Sprint',label:'contains'},{from:'Space',to:'Vista',label:'contains'},{from:'Vista',to:'Sprint',label:'visualizes'},{from:'Vista',to:'DevUser',label:'owned by'},{from:'Stream',to:'Sprint',label:'executed via'},{from:'Stream',to:'Issue',label:'tracks'},{from:'Stream',to:'Space',label:'lives in'},{from:'Release',to:'Issue',label:'includes'},{from:'Release',to:'CodeChange',label:'contains'},{from:'Release',to:'Product',label:'ships for'},{from:'Tag',to:'Issue',label:'applied to'},{from:'Tag',to:'Ticket',label:'applied to'},{from:'Tag',to:'Conversation',label:'applied to'},{from:'Link',to:'Issue',label:'connects'},{from:'Link',to:'Ticket',label:'connects'},{from:'Link',to:'Enhancement',label:'connects'},{from:'Todo',to:'DevUser',label:'assigned to'},{from:'Todo',to:'Meeting',label:'created from'},{from:'Todo',to:'Opportunity',label:'related to'},
+// Secondary - Identity
+{from:'Group',to:'DevUser',label:'contains'},{from:'Group',to:'Space',label:'granted access to'},{from:'Group',to:'ServiceAccount',label:'contains'},{from:'ServiceAccount',to:'SyncUnit',label:'authenticates'},{from:'ObjectMember',to:'DevUser',label:'references'},{from:'ObjectMember',to:'Group',label:'references'},{from:'ObjectMember',to:'Issue',label:'binds to'},
+// Secondary - Collaboration
+{from:'DM',to:'DevUser',label:'between'},{from:'Channel',to:'Space',label:'scoped to'},{from:'Channel',to:'Group',label:'accessible by'},{from:'Channel',to:'DevUser',label:'has members'},{from:'Engagement',to:'Account',label:'with'},{from:'Engagement',to:'Meeting',label:'includes'},{from:'Engagement',to:'Contact',label:'involves'},{from:'Interaction',to:'Contact',label:'performed by'},{from:'Interaction',to:'Account',label:'attributed to'},{from:'Interaction',to:'Opportunity',label:'influences'},
+// Secondary - Knowledge & AI
+{from:'Directory',to:'Article',label:'contains'},{from:'Directory',to:'Product',label:'scoped to'},{from:'QA',to:'Article',label:'references'},{from:'QA',to:'AIAgent',label:'surfaced by'},{from:'QA',to:'Product',label:'pertains to'},{from:'AIAgent',to:'Conversation',label:'responds in'},{from:'AIAgent',to:'Article',label:'trained on'},{from:'AIAgent',to:'Space',label:'deployed in'},{from:'Suggestion',to:'AIAgent',label:'generated by'},{from:'Suggestion',to:'Article',label:'recommends update to'},{from:'Suggestion',to:'Ticket',label:'proposed for'},
+// Secondary - Integrations
+{from:'SyncUnit',to:'ServiceAccount',label:'authenticated by'},{from:'SyncUnit',to:'Space',label:'imports into'},{from:'SyncUnit',to:'Product',label:'maps to'},{from:'RevOrg',to:'Account',label:'belongs to'},{from:'RevOrg',to:'Contact',label:'contains'},{from:'RevOrg',to:'Conversation',label:'originates'},
+// Secondary - Operations
+{from:'OnCallSchedule',to:'DevUser',label:'rotates among'},{from:'OnCallSchedule',to:'Incident',label:'routes to'},{from:'OnCallSchedule',to:'Group',label:'assigned to'},{from:'Deployment',to:'Runnable',label:'deploys'},{from:'Deployment',to:'Release',label:'part of'},{from:'Deployment',to:'Incident',label:'may cause'},
+];
+
+const displayName=id=>({DevUser:'Dev User',CodeChange:'Code Change',ServiceAccount:'Service Account',ObjectMember:'Object Member',AIAgent:'AI Agent',SyncUnit:'Sync Unit',RevOrg:'Rev Org',OnCallSchedule:'On-Call Schedule',QA:'Q&A',DM:'Direct Message',POC:'POC',Todo:'Todo'}[id]||id);
+
+// Build grid
+const grid=document.getElementById('object-grid');
+categories.forEach(cat=>{
+const div=document.createElement('div');
+div.className='category';div.dataset.category=cat.id;div.dataset.tier=cat.tier;
+div.innerHTML=`<div class="category-header"><div class="category-header-left"><div class="category-dot" style="background:${cat.dot}"></div><h2>${cat.label}</h2></div><span class="category-tier ${cat.tier}">${cat.tier}</span></div><div class="objects-list">${cat.objects.map(id=>{const m=meta[id];return`<div class="object-node ${m.t==='secondary'?'secondary-node':''}" data-id="${id}" data-category="${cat.id}" data-tier="${m.t}"><div class="object-icon">${m.e}</div><div class="object-details"><div class="object-name">${displayName(id)}</div><div class="object-desc">${m.d}</div></div><span class="conn-count"></span><span class="rel-badge"></span></div>`;}).join('')}</div>`;
+grid.appendChild(div);
+});
+
+let selectedNode=null,navigationHistory=[],animationFrameId=null;
+const appLayout=document.getElementById('app-layout'),svgCanvas=document.getElementById('svg-canvas'),detailPanel=document.getElementById('detail-panel'),tooltip=document.getElementById('tooltip');
+const allNodes=document.querySelectorAll('.object-node'),allCategories=document.querySelectorAll('.category'),filterChips=document.querySelectorAll('.filter-chip'),tierBtns=document.querySelectorAll('.tier-btn');
+
+allNodes.forEach(n=>{const id=n.dataset.id;const c=relationships.filter(r=>r.from===id||r.to===id).length;if(c>0)n.querySelector('.conn-count').textContent=c;});
+
+function getConnections(id){const c=[];relationships.forEach(r=>{if(r.from===id)c.push({target:r.to,label:r.label,direction:'outgoing'});if(r.to===id)c.push({target:r.from,label:r.label,direction:'incoming'});});return c;}
+function getNodeCenter(el){const m=document.getElementById('main').getBoundingClientRect(),r=el.getBoundingClientRect();return{x:r.left+r.width/2-m.left,y:r.top+r.height/2-m.top};}
+function getQ(p0,cp,p1,t){return{x:(1-t)*(1-t)*p0.x+2*(1-t)*t*cp.x+t*t*p1.x,y:(1-t)*(1-t)*p0.y+2*(1-t)*t*cp.y+t*t*p1.y};}
+
+function drawConnections(sourceId,connections){
+const defs=svgCanvas.querySelector('defs');svgCanvas.innerHTML='';svgCanvas.appendChild(defs);
+if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null;}
+const sourceEl=document.querySelector(`[data-id="${sourceId}"]`);if(!sourceEl)return;
+setTimeout(()=>{const sp=getNodeCenter(sourceEl);const paths=[];
+connections.forEach((conn,i)=>{const te=document.querySelector(`[data-id="${conn.target}"]`);if(!te||te.offsetParent===null)return;
+const tp=getNodeCenter(te);const dx=tp.x-sp.x,dy=tp.y-sp.y,dist=Math.sqrt(dx*dx+dy*dy);
+const curv=Math.min(dist*.18,40);const nx=-dy/(dist||1)*curv*(i%2===0?.3:-.3);const ny=dx/(dist||1)*curv*(i%2===0?.3:-.3);
+const cx=(sp.x+tp.x)/2+nx,cy=(sp.y+tp.y)/2+ny;
+const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+path.setAttribute('d',`M ${sp.x} ${sp.y} Q ${cx} ${cy}, ${tp.x} ${tp.y}`);path.setAttribute('stroke','#7ADB12');path.setAttribute('stroke-width','1.5');path.setAttribute('fill','none');path.setAttribute('filter','url(#glow)');path.style.opacity='0';
+svgCanvas.appendChild(path);const len=path.getTotalLength();path.style.strokeDasharray=len;path.style.strokeDashoffset=len;
+requestAnimationFrame(()=>{path.style.transition=`stroke-dash-offset .5s ease ${i*.04}s,opacity .3s ease ${i*.03}s`;path.style.opacity='.55';path.style.strokeDashoffset='0';});
+paths.push({path});
+const t2=.87;const pt=getQ(sp,{x:cx,y:cy},tp,t2);const pt2=getQ(sp,{x:cx,y:cy},tp,t2-.03);const angle=Math.atan2(pt.y-pt2.y,pt.x-pt2.x);const s=4;
+const arrow=document.createElementNS('http://www.w3.org/2000/svg','polygon');arrow.setAttribute('points',`${pt.x+s*Math.cos(angle)},${pt.y+s*Math.sin(angle)} ${pt.x+s*Math.cos(angle+2.4)},${pt.y+s*Math.sin(angle+2.4)} ${pt.x+s*Math.cos(angle-2.4)},${pt.y+s*Math.sin(angle-2.4)}`);arrow.setAttribute('fill','#7ADB12');arrow.style.opacity='0';arrow.style.transition=`opacity .3s ease ${.12+i*.04}s`;svgCanvas.appendChild(arrow);requestAnimationFrame(()=>{arrow.style.opacity='.6';});
+});if(paths.length)animateDots(paths);},60);
+}
+
+function animateDots(paths){const dots=paths.map((p,i)=>{const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('r','2');dot.classList.add('traveling-dot');svgCanvas.appendChild(dot);return{dot,progress:i*.12,speed:.004+Math.random()*.002,path:p.path};});
+function frame(){dots.forEach(d=>{d.progress+=d.speed;if(d.progress>1)d.progress=0;try{const pt=d.path.getPointAtLength(d.progress*d.path.getTotalLength());d.dot.setAttribute('cx',pt.x);d.dot.setAttribute('cy',pt.y);d.dot.setAttribute('opacity',Math.sin(d.progress*Math.PI)*.6+.2);}catch(e){}});animationFrameId=requestAnimationFrame(frame);}frame();}
+
+function clearSelection(){selectedNode=null;navigationHistory=[];if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null;}const defs=svgCanvas.querySelector('defs');svgCanvas.innerHTML='';svgCanvas.appendChild(defs);allNodes.forEach(n=>{n.classList.remove('selected','connected','dimmed');const b=n.querySelector('.rel-badge');b.textContent='';b.style.opacity='0';});allCategories.forEach(c=>c.classList.remove('dimmed','highlighted'));detailPanel.classList.remove('visible');appLayout.classList.remove('panel-open');}
+
+function selectNode(nodeId){if(selectedNode===nodeId){clearSelection();return;}if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null;}const defs=svgCanvas.querySelector('defs');svgCanvas.innerHTML='';svgCanvas.appendChild(defs);allNodes.forEach(n=>{n.classList.remove('selected','connected','dimmed');const b=n.querySelector('.rel-badge');b.textContent='';b.style.opacity='0';});allCategories.forEach(c=>c.classList.remove('dimmed','highlighted'));
+selectedNode=nodeId;const idx=navigationHistory.indexOf(nodeId);if(idx>-1)navigationHistory=navigationHistory.slice(0,idx+1);else navigationHistory.push(nodeId);
+const connections=getConnections(nodeId);const connIds=connections.map(c=>c.target);
+allNodes.forEach(n=>{if(n.dataset.id!==nodeId&&!connIds.includes(n.dataset.id))n.classList.add('dimmed');});
+const sel=document.querySelector(`[data-id="${nodeId}"]`);if(sel)sel.classList.add('selected');
+connections.forEach(conn=>{const te=document.querySelector(`[data-id="${conn.target}"]`);if(te){te.classList.add('connected');const b=te.querySelector('.rel-badge');b.textContent=`${conn.direction==='outgoing'?'→':'←'} ${conn.label}`;b.style.opacity='1';}});
+allCategories.forEach(cat=>{const nodes=cat.querySelectorAll('.object-node');const allD=Array.from(nodes).every(n=>n.classList.contains('dimmed'));if(allD)cat.classList.add('dimmed');else cat.classList.add('highlighted');});
+appLayout.classList.add('panel-open');detailPanel.classList.add('visible');setTimeout(()=>{resizeSVG();drawConnections(nodeId,connections);},80);showDetailPanel(nodeId,connections);}
+
+function showDetailPanel(nodeId,connections){const m=meta[nodeId];document.getElementById('panel-icon').textContent=m.e;document.getElementById('panel-title').textContent=displayName(nodeId);document.getElementById('panel-desc').textContent=m.d;const out=connections.filter(c=>c.direction==='outgoing'),inc=connections.filter(c=>c.direction==='incoming');
+document.getElementById('panel-meta').innerHTML=`<div class="panel-meta-item"><span class="num">${out.length}</span> out</div><div class="panel-meta-item"><span class="num">${inc.length}</span> in</div><div class="panel-meta-item tier-${m.t}">${m.t}</div>`;
+document.getElementById('panel-brief').innerHTML=`<div class="detail-section-title">About</div><p class="panel-brief-text">${m.b}</p>`;
+document.getElementById('panel-outgoing').innerHTML=out.length?`<div class="detail-section-title">Outgoing</div><div class="detail-connections">${out.map(connHTML).join('')}</div>`:'';
+document.getElementById('panel-incoming').innerHTML=inc.length?`<div class="detail-section-title">Incoming</div><div class="detail-connections">${inc.map(connHTML).join('')}</div>`:'';
+document.getElementById('breadcrumb').innerHTML=navigationHistory.map((id,i)=>`<span class="breadcrumb-item ${i===navigationHistory.length-1?'current':''}" data-nav="${id}">${meta[id].e} ${displayName(id)}</span>${i<navigationHistory.length-1?'<span class="breadcrumb-sep">›</span>':''}`).join('');}
+
+function connHTML(conn){const m=meta[conn.target];const dir=conn.direction==='outgoing'?'out':'in';return`<div class="detail-connection" data-navigate="${conn.target}"><div class="dc-icon">${m.e}</div><div class="dc-info"><div class="dc-target-name">${displayName(conn.target)}</div><div class="dc-label">${conn.label}</div></div><span class="dc-direction ${dir}">${conn.direction==='outgoing'?'→ OUT':'← IN'}</span></div>`;}
+
+// Events
+allNodes.forEach(n=>n.addEventListener('click',e=>{e.stopPropagation();selectNode(n.dataset.id);}));
+detailPanel.addEventListener('click',e=>{const c=e.target.closest('[data-navigate]');if(c)selectNode(c.dataset.navigate);});
+document.getElementById('panel-close').addEventListener('click',clearSelection);
+document.addEventListener('click',e=>{if(!e.target.closest('.object-node')&&!e.target.closest('.detail-panel')&&!e.target.closest('.filter-chip')&&!e.target.closest('.tier-btn'))clearSelection();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')clearSelection();});
+
+allNodes.forEach(n=>{n.addEventListener('mouseenter',e=>{if(selectedNode)return;const id=n.dataset.id;const c=relationships.filter(r=>r.from===id||r.to===id).length;if(!c)return;tooltip.innerHTML=`<strong>${displayName(id)}</strong> — ${c} connection${c!==1?'s':''}`;tooltip.classList.add('visible');posT(e);});n.addEventListener('mousemove',posT);n.addEventListener('mouseleave',()=>tooltip.classList.remove('visible'));});
+function posT(e){tooltip.style.left=(e.clientX+12)+'px';tooltip.style.top=(e.clientY-26)+'px';}
+
+// Filters
+filterChips.forEach(chip=>chip.addEventListener('click',()=>{clearSelection();filterChips.forEach(c=>c.classList.remove('active'));chip.classList.add('active');const f=chip.dataset.filter;allCategories.forEach(cat=>{const show=f==='all'||cat.dataset.category===f;cat.classList.toggle('hidden',!show);});}));
+
+// Tier toggle
+tierBtns.forEach(btn=>btn.addEventListener('click',()=>{clearSelection();tierBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');const t=btn.dataset.tier;allCategories.forEach(cat=>{if(t==='all')cat.classList.remove('hidden');else cat.classList.toggle('hidden',cat.dataset.tier!==t);});filterChips.forEach(c=>c.classList.remove('active'));filterChips[0].classList.add('active');}));
+
+function resizeSVG(){const m=document.getElementById('main');svgCanvas.setAttribute('width',m.scrollWidth);svgCanvas.setAttribute('height',m.scrollHeight);svgCanvas.style.width=m.scrollWidth+'px';svgCanvas.style.height=m.scrollHeight+'px';}
+resizeSVG();window.addEventListener('resize',()=>{resizeSVG();if(selectedNode)drawConnections(selectedNode,getConnections(selectedNode));});
+</script>
+</body>
+</html>

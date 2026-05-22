@@ -270,21 +270,101 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
     );
   }
 
-  // Determine which edges/nodes are highlighted
+  // --- Compute 2-hop neighborhood for edge selection ---
+  // Tier 0: the clicked edge itself (boldest)
+  // Tier 1: edges directly connected to either node of the clicked edge
+  // Tier 2: edges one more hop out from tier 1 nodes
+  const edgeTier = new Map(); // edge.index → 0 | 1 | 2
+  const nodeTier = new Map(); // nodeType → 0 | 1 | 2
   const highlightedEdges = new Set();
   const highlightedNodes = new Set();
 
+  // Build upstream/downstream data for panel
+  let upstreamEdges = [];
+  let downstreamEdges = [];
+
   if (selectedEdge) {
+    // Tier 0: the selected edge and its nodes
+    edgeTier.set(selectedEdge.index, 0);
+    nodeTier.set(selectedEdge.from, 0);
+    nodeTier.set(selectedEdge.to, 0);
     highlightedEdges.add(selectedEdge.index);
     highlightedNodes.add(selectedEdge.from);
     highlightedNodes.add(selectedEdge.to);
+
+    // Tier 1: all edges touching either anchor node
+    const tier1Nodes = new Set();
+    edges.forEach((e) => {
+      if (e.index === selectedEdge.index) return;
+      if (e.from === selectedEdge.from || e.to === selectedEdge.from ||
+          e.from === selectedEdge.to || e.to === selectedEdge.to) {
+        if (!edgeTier.has(e.index)) edgeTier.set(e.index, 1);
+        highlightedEdges.add(e.index);
+        [e.from, e.to].forEach((n) => {
+          highlightedNodes.add(n);
+          if (!nodeTier.has(n)) { nodeTier.set(n, 1); tier1Nodes.add(n); }
+        });
+      }
+    });
+
+    // Tier 2: edges touching tier 1 nodes (but not already in tier 0/1)
+    edges.forEach((e) => {
+      if (edgeTier.has(e.index)) return;
+      if (tier1Nodes.has(e.from) || tier1Nodes.has(e.to)) {
+        edgeTier.set(e.index, 2);
+        highlightedEdges.add(e.index);
+        [e.from, e.to].forEach((n) => {
+          highlightedNodes.add(n);
+          if (!nodeTier.has(n)) nodeTier.set(n, 2);
+        });
+      }
+    });
+
+    // Build upstream (edges pointing INTO from/to nodes) and downstream (edges going OUT)
+    const fromNode = selectedEdge.from;
+    const toNode = selectedEdge.to;
+
+    // Upstream: things that feed into the "from" node
+    upstreamEdges = edges
+      .filter((e) => e.to === fromNode && e.index !== selectedEdge.index)
+      .map((e) => ({ ...e, hop: 1 }));
+    // Second hop upstream
+    const upstreamSources = upstreamEdges.map((e) => e.from);
+    const upstream2 = edges.filter((e) => upstreamSources.includes(e.to) && e.index !== selectedEdge.index && !upstreamEdges.find((u) => u.index === e.index));
+    upstreamEdges = [...upstreamEdges, ...upstream2.map((e) => ({ ...e, hop: 2 }))];
+
+    // Also include edges going into the "to" node (besides the selected one)
+    const intoTarget = edges
+      .filter((e) => e.to === toNode && e.index !== selectedEdge.index && !upstreamEdges.find((u) => u.index === e.index))
+      .map((e) => ({ ...e, hop: 1 }));
+    upstreamEdges = [...upstreamEdges, ...intoTarget];
+
+    // Downstream: things that flow out from the "to" node
+    downstreamEdges = edges
+      .filter((e) => e.from === toNode && e.index !== selectedEdge.index)
+      .map((e) => ({ ...e, hop: 1 }));
+    // Second hop downstream
+    const downstreamTargets = downstreamEdges.map((e) => e.to);
+    const downstream2 = edges.filter((e) => downstreamTargets.includes(e.from) && e.index !== selectedEdge.index && !downstreamEdges.find((d) => d.index === e.index));
+    downstreamEdges = [...downstreamEdges, ...downstream2.map((e) => ({ ...e, hop: 2 }))];
+
+    // Also include edges going out from the "from" node (besides the selected one)
+    const outFromSource = edges
+      .filter((e) => e.from === fromNode && e.index !== selectedEdge.index && !downstreamEdges.find((d) => d.index === e.index))
+      .map((e) => ({ ...e, hop: 1 }));
+    downstreamEdges = [...downstreamEdges, ...outFromSource];
+
   } else if (hoveredNode) {
     highlightedNodes.add(hoveredNode);
+    nodeTier.set(hoveredNode, 0);
     edges.forEach((e) => {
       if (e.from === hoveredNode || e.to === hoveredNode) {
         highlightedEdges.add(e.index);
+        edgeTier.set(e.index, 0);
         highlightedNodes.add(e.from);
         highlightedNodes.add(e.to);
+        if (!nodeTier.has(e.from)) nodeTier.set(e.from, 1);
+        if (!nodeTier.has(e.to)) nodeTier.set(e.to, 1);
       }
     });
   }
@@ -339,8 +419,34 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
 
             const isHighlighted = highlightedEdges.has(edge.index);
             const isDimmed = hasSelection && !isHighlighted;
+            const tier = edgeTier.get(edge.index);
             const edgeKey = `${edge.from}→${edge.to}→${edge.label}`;
             const hasAnnotation = showAnnotations && edgeAnnotations.has(edgeKey);
+
+            // Tier-based styling
+            let strokeColor = '#4a4a4a';
+            let strokeWidth = 1;
+            let strokeOpacity = 0.4;
+
+            if (isDimmed) {
+              strokeOpacity = 0.08;
+            } else if (tier === 0) {
+              strokeColor = '#7ADB12';
+              strokeWidth = 2.5;
+              strokeOpacity = 0.9;
+            } else if (tier === 1) {
+              strokeColor = '#7ADB12';
+              strokeWidth = 1.5;
+              strokeOpacity = 0.5;
+            } else if (tier === 2) {
+              strokeColor = '#5996FF';
+              strokeWidth = 1;
+              strokeOpacity = 0.3;
+            } else if (hasAnnotation) {
+              strokeColor = ANNOTATION_TYPE_COLORS[edgeAnnotations.get(edgeKey)[0].annotationType || 'context'];
+              strokeWidth = 1.5;
+              strokeOpacity = 0.6;
+            }
 
             return (
               <g key={`edge-${edge.index}`}>
@@ -355,10 +461,10 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
                 <path
                   id={`graph-edge-${edge.index}`}
                   d={`M ${from.x} ${from.y} Q ${cx} ${cy}, ${to.x} ${to.y}`}
-                  stroke={hasAnnotation ? ANNOTATION_TYPE_COLORS[edgeAnnotations.get(edgeKey)[0].annotationType || 'context'] : isHighlighted ? '#7ADB12' : '#4a4a4a'}
-                  strokeWidth={isHighlighted ? 2 : hasAnnotation ? 1.5 : 1}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
                   fill="none"
-                  opacity={isDimmed ? 0.15 : isHighlighted ? 0.8 : hasAnnotation ? 0.6 : 0.4}
+                  opacity={strokeOpacity}
                   style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
                   onClick={(e) => handleEdgeClick(edge, e)}
                 />
@@ -397,10 +503,15 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
 
             const isHighlighted = highlightedNodes.has(type);
             const isDimmed = hasSelection && !isHighlighted;
+            const nTier = nodeTier.get(type);
             const color = getColor(type);
             const connCount = edges.filter((e) => e.from === type || e.to === type).length;
             const hasAnnotation = showAnnotations && nodeAnnotations.has(type);
             const nodeAnns = nodeAnnotations.get(type) || [];
+
+            // Node size based on tier (anchor nodes slightly larger)
+            const nodeRadius = nTier === 0 ? NODE_RADIUS + 3 : NODE_RADIUS;
+            const nodeOpacity = isDimmed ? 0.2 : nTier === 2 ? 0.7 : 1;
 
             return (
               <g
@@ -409,15 +520,15 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
                 onClick={(e) => { e.stopPropagation(); handleNodeClick(type); }}
                 style={{ cursor: 'pointer' }}
               >
-                {isHighlighted && (
-                  <circle cx={pos.x} cy={pos.y} r={NODE_RADIUS + 4} fill="none" stroke={color} strokeWidth="2" opacity="0.4" filter="url(#node-glow)" />
+                {nTier === 0 && (
+                  <circle cx={pos.x} cy={pos.y} r={nodeRadius + 4} fill="none" stroke={color} strokeWidth="2" opacity="0.4" filter="url(#node-glow)" />
                 )}
                 <circle
-                  cx={pos.x} cy={pos.y} r={NODE_RADIUS}
+                  cx={pos.x} cy={pos.y} r={nodeRadius}
                   fill="#1f1d1e"
-                  stroke={hasAnnotation ? ANNOTATION_TYPE_COLORS[nodeAnns[0].annotationType || 'context'] : isDimmed ? '#333' : color}
-                  strokeWidth={hasAnnotation ? 2.5 : isHighlighted ? 2 : 1}
-                  opacity={isDimmed ? 0.3 : 1}
+                  stroke={hasAnnotation && !isDimmed ? ANNOTATION_TYPE_COLORS[nodeAnns[0].annotationType || 'context'] : isDimmed ? '#333' : color}
+                  strokeWidth={nTier === 0 ? 2.5 : hasAnnotation ? 2 : isHighlighted ? 1.5 : 1}
+                  opacity={nodeOpacity}
                   style={{ transition: 'all 0.3s ease' }}
                 />
                 {/* Annotation ring pulse */}
@@ -462,8 +573,8 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
         </svg>
       </div>
 
-      {/* Examples Panel (edge click) */}
-      <div className={`graph-panel ${selectedEdge && !selectedAnnotation ? 'visible' : ''}`}>
+      {/* Relationship Neighborhood Panel (edge click) */}
+      <div className={`graph-panel graph-panel-wide ${selectedEdge && !selectedAnnotation ? 'visible' : ''}`}>
         {selectedEdge && !selectedAnnotation && (
           <>
             <div className="graph-panel-header">
@@ -479,9 +590,57 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
               <button className="graph-panel-close" onClick={(e) => { e.stopPropagation(); setSelectedEdge(null); }}>×</button>
             </div>
             <div className="graph-panel-body">
-              {selectedEdge.examples?.length > 0 ? (
-                <>
-                  <div className="panel-section-label">Real examples from this org</div>
+              {/* Upstream section */}
+              {upstreamEdges.length > 0 && (
+                <div className="neighborhood-section">
+                  <div className="neighborhood-title upstream">↑ Upstream</div>
+                  {upstreamEdges.map((e, i) => (
+                    <div key={i} className={`neighborhood-edge hop-${e.hop}`}>
+                      <span className="ne-icon">{getIcon(e.from)}</span>
+                      <span className="ne-from">{e.from}</span>
+                      <span className="ne-label">{e.label}</span>
+                      <span className="ne-arrow">→</span>
+                      <span className="ne-icon">{getIcon(e.to)}</span>
+                      <span className="ne-to">{e.to}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected edge (highlighted) */}
+              <div className="neighborhood-section">
+                <div className="neighborhood-title selected">● Selected relationship</div>
+                <div className="neighborhood-edge hop-0 selected-edge">
+                  <span className="ne-icon">{getIcon(selectedEdge.from)}</span>
+                  <span className="ne-from">{selectedEdge.from}</span>
+                  <span className="ne-label">{selectedEdge.label}</span>
+                  <span className="ne-arrow">→</span>
+                  <span className="ne-icon">{getIcon(selectedEdge.to)}</span>
+                  <span className="ne-to">{selectedEdge.to}</span>
+                </div>
+              </div>
+
+              {/* Downstream section */}
+              {downstreamEdges.length > 0 && (
+                <div className="neighborhood-section">
+                  <div className="neighborhood-title downstream">↓ Downstream</div>
+                  {downstreamEdges.map((e, i) => (
+                    <div key={i} className={`neighborhood-edge hop-${e.hop}`}>
+                      <span className="ne-icon">{getIcon(e.from)}</span>
+                      <span className="ne-from">{e.from}</span>
+                      <span className="ne-label">{e.label}</span>
+                      <span className="ne-arrow">→</span>
+                      <span className="ne-icon">{getIcon(e.to)}</span>
+                      <span className="ne-to">{e.to}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Examples */}
+              {selectedEdge.examples?.length > 0 && (
+                <div className="neighborhood-section">
+                  <div className="neighborhood-title examples">Real examples</div>
                   {selectedEdge.examples.map((ex, i) => (
                     <div key={i} className="example-row">
                       <div className="example-from">
@@ -495,9 +654,11 @@ export default function CustomerGraph({ relationships, orgName, annotations = []
                       </div>
                     </div>
                   ))}
-                </>
-              ) : (
-                <div className="panel-empty">No specific examples found for this relationship.</div>
+                </div>
+              )}
+
+              {upstreamEdges.length === 0 && downstreamEdges.length === 0 && !selectedEdge.examples?.length && (
+                <div className="panel-empty">This is an isolated relationship with no connected paths.</div>
               )}
             </div>
           </>

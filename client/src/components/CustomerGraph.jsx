@@ -47,6 +47,20 @@ const TYPE_ICONS = {
   'Rev Org': '🏢',
 };
 
+const ANNOTATION_TYPE_ICONS = {
+  context: '💬',
+  recommendation: '💡',
+  question: '❓',
+  highlight: '⭐',
+};
+
+const ANNOTATION_TYPE_COLORS = {
+  context: '#5996FF',
+  recommendation: '#7ADB12',
+  question: '#FFE600',
+  highlight: '#F35106',
+};
+
 function getIcon(type) {
   return TYPE_ICONS[type] || '●';
 }
@@ -62,7 +76,6 @@ function computeLayout(nodes, edges, width, height) {
   const centerY = height / 2;
   const radius = Math.min(width, height) / 2 - padding;
 
-  // Position nodes in a circle initially
   const positions = new Map();
   const angleStep = (2 * Math.PI) / nodes.length;
 
@@ -74,7 +87,6 @@ function computeLayout(nodes, edges, width, height) {
     });
   });
 
-  // Run simple force simulation (50 iterations)
   const iterations = 60;
   const repulsion = 8000;
   const attraction = 0.005;
@@ -84,7 +96,6 @@ function computeLayout(nodes, edges, width, height) {
   nodes.forEach((n) => velocities.set(n, { vx: 0, vy: 0 }));
 
   for (let iter = 0; iter < iterations; iter++) {
-    // Repulsion between all nodes
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = positions.get(nodes[i]);
@@ -95,17 +106,13 @@ function computeLayout(nodes, edges, width, height) {
         const force = repulsion / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-
         const va = velocities.get(nodes[i]);
         const vb = velocities.get(nodes[j]);
-        va.vx += fx;
-        va.vy += fy;
-        vb.vx -= fx;
-        vb.vy -= fy;
+        va.vx += fx; va.vy += fy;
+        vb.vx -= fx; vb.vy -= fy;
       }
     }
 
-    // Attraction along edges
     edges.forEach((edge) => {
       const a = positions.get(edge.from);
       const b = positions.get(edge.to);
@@ -116,14 +123,12 @@ function computeLayout(nodes, edges, width, height) {
       const force = dist * attraction;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
-
       const va = velocities.get(edge.from);
       const vb = velocities.get(edge.to);
       if (va) { va.vx += fx; va.vy += fy; }
       if (vb) { vb.vx -= fx; vb.vy -= fy; }
     });
 
-    // Center gravity
     nodes.forEach((node) => {
       const pos = positions.get(node);
       const vel = velocities.get(node);
@@ -131,16 +136,11 @@ function computeLayout(nodes, edges, width, height) {
       vel.vy += (centerY - pos.y) * 0.001;
     });
 
-    // Apply velocities
     nodes.forEach((node) => {
       const pos = positions.get(node);
       const vel = velocities.get(node);
-      vel.vx *= damping;
-      vel.vy *= damping;
-      pos.x += vel.vx;
-      pos.y += vel.vy;
-
-      // Clamp to bounds
+      vel.vx *= damping; vel.vy *= damping;
+      pos.x += vel.vx; pos.y += vel.vy;
       pos.x = Math.max(padding, Math.min(width - padding, pos.x));
       pos.y = Math.max(padding, Math.min(height - padding, pos.y));
     });
@@ -149,18 +149,35 @@ function computeLayout(nodes, edges, width, height) {
   return positions;
 }
 
-export default function CustomerGraph({ relationships, orgName }) {
+export default function CustomerGraph({ relationships, orgName, annotations = [] }) {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [positions, setPositions] = useState(null);
+  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null);
   const animRef = useRef(null);
   const dotsRef = useRef([]);
 
   // Extract unique node types from relationships
   const nodeTypes = [...new Set(relationships.flatMap((r) => [r.from, r.to]))];
   const edges = relationships.map((r, i) => ({ from: r.from, to: r.to, label: r.label, examples: r.examples, index: i }));
+
+  // Group annotations by target
+  const nodeAnnotations = new Map();
+  const edgeAnnotations = new Map();
+  annotations.forEach((a) => {
+    if (a.nodeType) {
+      if (!nodeAnnotations.has(a.nodeType)) nodeAnnotations.set(a.nodeType, []);
+      nodeAnnotations.get(a.nodeType).push(a);
+    } else if (a.edgeKey) {
+      if (!edgeAnnotations.has(a.edgeKey)) edgeAnnotations.set(a.edgeKey, []);
+      edgeAnnotations.get(a.edgeKey).push(a);
+    }
+  });
+
+  const annotationCount = annotations.length;
 
   // Compute layout
   useEffect(() => {
@@ -201,7 +218,6 @@ export default function CustomerGraph({ relationships, orgName }) {
         d.progress += d.speed;
         if (d.progress > 1) d.progress = 0;
       });
-      // Update dot positions via DOM
       dots.forEach((d) => {
         const el = document.getElementById(`graph-dot-${d.index}`);
         const pathEl = document.getElementById(`graph-edge-${d.index}`);
@@ -211,9 +227,7 @@ export default function CustomerGraph({ relationships, orgName }) {
           const pt = pathEl.getPointAtLength(d.progress * len);
           el.setAttribute('cx', pt.x);
           el.setAttribute('cy', pt.y);
-        } catch {
-          // path not ready
-        }
+        } catch { /* path not ready */ }
       });
       animRef.current = requestAnimationFrame(frame);
     };
@@ -227,16 +241,25 @@ export default function CustomerGraph({ relationships, orgName }) {
   const handleEdgeClick = useCallback((edge, e) => {
     e.stopPropagation();
     setSelectedEdge((prev) => (prev?.index === edge.index ? null : edge));
+    setSelectedAnnotation(null);
   }, []);
 
   const handleNodeClick = useCallback((nodeType) => {
     setHoveredNode((prev) => (prev === nodeType ? null : nodeType));
+    setSelectedEdge(null);
+    setSelectedAnnotation(null);
+  }, []);
+
+  const handleAnnotationClick = useCallback((annotation, e) => {
+    e.stopPropagation();
+    setSelectedAnnotation((prev) => (prev?.id === annotation.id ? null : annotation));
     setSelectedEdge(null);
   }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedEdge(null);
     setHoveredNode(null);
+    setSelectedAnnotation(null);
   }, []);
 
   if (!positions || nodeTypes.length === 0) {
@@ -271,6 +294,17 @@ export default function CustomerGraph({ relationships, orgName }) {
 
   return (
     <div className="customer-graph-wrapper" onClick={clearSelection}>
+      {/* Annotation layer toggle */}
+      {annotationCount > 0 && (
+        <button
+          type="button"
+          className={`annotation-toggle ${showAnnotations ? 'active' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setShowAnnotations(!showAnnotations); }}
+        >
+          {showAnnotations ? '🏷 Hide' : '🏷 Show'} notes ({annotationCount})
+        </button>
+      )}
+
       <div className="customer-graph-container" ref={containerRef}>
         <svg
           className="customer-graph-svg"
@@ -298,7 +332,6 @@ export default function CustomerGraph({ relationships, orgName }) {
             const dy = to.y - from.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const curv = Math.min(dist * 0.15, 30);
-            // Offset for parallel edges
             const nx = (-dy / (dist || 1)) * curv * 0.3;
             const ny = (dx / (dist || 1)) * curv * 0.3;
             const cx = (from.x + to.x) / 2 + nx;
@@ -306,10 +339,11 @@ export default function CustomerGraph({ relationships, orgName }) {
 
             const isHighlighted = highlightedEdges.has(edge.index);
             const isDimmed = hasSelection && !isHighlighted;
+            const edgeKey = `${edge.from}→${edge.to}→${edge.label}`;
+            const hasAnnotation = showAnnotations && edgeAnnotations.has(edgeKey);
 
             return (
               <g key={`edge-${edge.index}`}>
-                {/* Wider invisible hit area */}
                 <path
                   d={`M ${from.x} ${from.y} Q ${cx} ${cy}, ${to.x} ${to.y}`}
                   stroke="transparent"
@@ -321,25 +355,30 @@ export default function CustomerGraph({ relationships, orgName }) {
                 <path
                   id={`graph-edge-${edge.index}`}
                   d={`M ${from.x} ${from.y} Q ${cx} ${cy}, ${to.x} ${to.y}`}
-                  stroke={isHighlighted ? '#7ADB12' : '#4a4a4a'}
-                  strokeWidth={isHighlighted ? 2 : 1}
+                  stroke={hasAnnotation ? ANNOTATION_TYPE_COLORS[edgeAnnotations.get(edgeKey)[0].annotationType || 'context'] : isHighlighted ? '#7ADB12' : '#4a4a4a'}
+                  strokeWidth={isHighlighted ? 2 : hasAnnotation ? 1.5 : 1}
                   fill="none"
-                  opacity={isDimmed ? 0.15 : isHighlighted ? 0.8 : 0.4}
+                  opacity={isDimmed ? 0.15 : isHighlighted ? 0.8 : hasAnnotation ? 0.6 : 0.4}
                   style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
                   onClick={(e) => handleEdgeClick(edge, e)}
                 />
-                {/* Edge label on hover/select */}
                 {isHighlighted && (
-                  <text
-                    x={cx}
-                    y={cy - 8}
-                    textAnchor="middle"
-                    className="edge-label"
-                  >
+                  <text x={cx} y={cy - 8} textAnchor="middle" className="edge-label">
                     {edge.label}
                   </text>
                 )}
-                {/* Animated dot */}
+                {/* Edge annotation indicator */}
+                {hasAnnotation && !isDimmed && (
+                  <g
+                    onClick={(e) => handleAnnotationClick(edgeAnnotations.get(edgeKey)[0], e)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <circle cx={cx} cy={cy + 10} r={8} fill={ANNOTATION_TYPE_COLORS[edgeAnnotations.get(edgeKey)[0].annotationType || 'context']} opacity="0.9" />
+                    <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="central" fontSize="9">
+                      {ANNOTATION_TYPE_ICONS[edgeAnnotations.get(edgeKey)[0].annotationType || 'context']}
+                    </text>
+                  </g>
+                )}
                 <circle
                   id={`graph-dot-${edge.index}`}
                   r={isHighlighted ? 3 : 2}
@@ -360,6 +399,8 @@ export default function CustomerGraph({ relationships, orgName }) {
             const isDimmed = hasSelection && !isHighlighted;
             const color = getColor(type);
             const connCount = edges.filter((e) => e.from === type || e.to === type).length;
+            const hasAnnotation = showAnnotations && nodeAnnotations.has(type);
+            const nodeAnns = nodeAnnotations.get(type) || [];
 
             return (
               <g
@@ -368,71 +409,52 @@ export default function CustomerGraph({ relationships, orgName }) {
                 onClick={(e) => { e.stopPropagation(); handleNodeClick(type); }}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Glow ring on highlight */}
                 {isHighlighted && (
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={NODE_RADIUS + 4}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="2"
-                    opacity="0.4"
-                    filter="url(#node-glow)"
-                  />
+                  <circle cx={pos.x} cy={pos.y} r={NODE_RADIUS + 4} fill="none" stroke={color} strokeWidth="2" opacity="0.4" filter="url(#node-glow)" />
                 )}
-                {/* Node background */}
                 <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={NODE_RADIUS}
+                  cx={pos.x} cy={pos.y} r={NODE_RADIUS}
                   fill="#1f1d1e"
-                  stroke={isDimmed ? '#333' : color}
-                  strokeWidth={isHighlighted ? 2 : 1}
+                  stroke={hasAnnotation ? ANNOTATION_TYPE_COLORS[nodeAnns[0].annotationType || 'context'] : isDimmed ? '#333' : color}
+                  strokeWidth={hasAnnotation ? 2.5 : isHighlighted ? 2 : 1}
                   opacity={isDimmed ? 0.3 : 1}
                   style={{ transition: 'all 0.3s ease' }}
                 />
-                {/* Icon */}
-                <text
-                  x={pos.x}
-                  y={pos.y - 2}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="16"
-                  opacity={isDimmed ? 0.3 : 1}
-                  style={{ transition: 'opacity 0.3s ease' }}
-                >
+                {/* Annotation ring pulse */}
+                {hasAnnotation && !isDimmed && (
+                  <circle
+                    cx={pos.x} cy={pos.y} r={NODE_RADIUS + 2}
+                    fill="none"
+                    stroke={ANNOTATION_TYPE_COLORS[nodeAnns[0].annotationType || 'context']}
+                    strokeWidth="1"
+                    opacity="0.3"
+                    className="annotation-pulse"
+                  />
+                )}
+                <text x={pos.x} y={pos.y - 2} textAnchor="middle" dominantBaseline="central" fontSize="16" opacity={isDimmed ? 0.3 : 1} style={{ transition: 'opacity 0.3s ease' }}>
                   {getIcon(type)}
                 </text>
-                {/* Label */}
-                <text
-                  x={pos.x}
-                  y={pos.y + NODE_RADIUS + 14}
-                  textAnchor="middle"
-                  className={`node-label ${isDimmed ? 'dimmed' : ''}`}
-                >
+                <text x={pos.x} y={pos.y + NODE_RADIUS + 14} textAnchor="middle" className={`node-label ${isDimmed ? 'dimmed' : ''}`}>
                   {type}
                 </text>
                 {/* Connection count badge */}
                 {connCount > 0 && !isDimmed && (
                   <>
-                    <circle
-                      cx={pos.x + NODE_RADIUS - 4}
-                      cy={pos.y - NODE_RADIUS + 4}
-                      r={8}
-                      fill={color}
-                      opacity="0.9"
-                    />
-                    <text
-                      x={pos.x + NODE_RADIUS - 4}
-                      y={pos.y - NODE_RADIUS + 4}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      className="conn-badge"
-                    >
-                      {connCount}
-                    </text>
+                    <circle cx={pos.x + NODE_RADIUS - 4} cy={pos.y - NODE_RADIUS + 4} r={8} fill={color} opacity="0.9" />
+                    <text x={pos.x + NODE_RADIUS - 4} y={pos.y - NODE_RADIUS + 4} textAnchor="middle" dominantBaseline="central" className="conn-badge">{connCount}</text>
                   </>
+                )}
+                {/* Annotation badge on node */}
+                {hasAnnotation && !isDimmed && (
+                  <g onClick={(e) => handleAnnotationClick(nodeAnns[0], e)} style={{ cursor: 'pointer' }}>
+                    <circle cx={pos.x - NODE_RADIUS + 4} cy={pos.y - NODE_RADIUS + 4} r={9} fill={ANNOTATION_TYPE_COLORS[nodeAnns[0].annotationType || 'context']} opacity="0.95" />
+                    <text x={pos.x - NODE_RADIUS + 4} y={pos.y - NODE_RADIUS + 4} textAnchor="middle" dominantBaseline="central" fontSize="10">
+                      {ANNOTATION_TYPE_ICONS[nodeAnns[0].annotationType || 'context']}
+                    </text>
+                    {nodeAnns.length > 1 && (
+                      <text x={pos.x - NODE_RADIUS + 14} y={pos.y - NODE_RADIUS - 2} textAnchor="middle" className="annotation-count">+{nodeAnns.length - 1}</text>
+                    )}
+                  </g>
                 )}
               </g>
             );
@@ -440,9 +462,9 @@ export default function CustomerGraph({ relationships, orgName }) {
         </svg>
       </div>
 
-      {/* Examples Panel */}
-      <div className={`graph-panel ${selectedEdge ? 'visible' : ''}`}>
-        {selectedEdge && (
+      {/* Examples Panel (edge click) */}
+      <div className={`graph-panel ${selectedEdge && !selectedAnnotation ? 'visible' : ''}`}>
+        {selectedEdge && !selectedAnnotation && (
           <>
             <div className="graph-panel-header">
               <div className="graph-panel-title">
@@ -482,14 +504,68 @@ export default function CustomerGraph({ relationships, orgName }) {
         )}
       </div>
 
+      {/* Annotation Panel (annotation click) */}
+      <div className={`graph-panel ${selectedAnnotation ? 'visible' : ''}`}>
+        {selectedAnnotation && (
+          <>
+            <div className="graph-panel-header">
+              <div className="graph-panel-title">
+                <span className="annotation-type-badge" style={{ background: ANNOTATION_TYPE_COLORS[selectedAnnotation.annotationType || 'context'] }}>
+                  {ANNOTATION_TYPE_ICONS[selectedAnnotation.annotationType || 'context']} {selectedAnnotation.annotationType || 'context'}
+                </span>
+                {selectedAnnotation.nodeType && (
+                  <span className="panel-type-name">on {selectedAnnotation.nodeType}</span>
+                )}
+              </div>
+              <button className="graph-panel-close" onClick={(e) => { e.stopPropagation(); setSelectedAnnotation(null); }}>×</button>
+            </div>
+            <div className="graph-panel-body">
+              <div className="annotation-panel-text">{selectedAnnotation.text}</div>
+              <div className="annotation-panel-meta">
+                <span className="annotation-panel-author">{selectedAnnotation.author}</span>
+                {selectedAnnotation.createdAt && (
+                  <span className="annotation-panel-date">
+                    {new Date(selectedAnnotation.createdAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              {/* Show all annotations for this target */}
+              {(() => {
+                const target = selectedAnnotation.nodeType || selectedAnnotation.edgeKey;
+                const siblings = annotations.filter((a) => (a.nodeType || a.edgeKey) === target && a.id !== selectedAnnotation.id);
+                if (siblings.length === 0) return null;
+                return (
+                  <>
+                    <div className="panel-section-label" style={{ marginTop: 12 }}>Other notes on this {selectedAnnotation.nodeType ? 'object' : 'relationship'}</div>
+                    {siblings.map((a) => (
+                      <div key={a.id} className="annotation-sibling" onClick={(e) => handleAnnotationClick(a, e)}>
+                        <span style={{ color: ANNOTATION_TYPE_COLORS[a.annotationType || 'context'] }}>
+                          {ANNOTATION_TYPE_ICONS[a.annotationType || 'context']}
+                        </span>
+                        <span className="annotation-sibling-text">{a.text}</span>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Node info tooltip */}
-      {hoveredNode && !selectedEdge && (
+      {hoveredNode && !selectedEdge && !selectedAnnotation && (
         <div className="graph-node-info">
           <span className="node-info-icon">{getIcon(hoveredNode)}</span>
           <span className="node-info-type">{hoveredNode}</span>
           <span className="node-info-count">
             {edges.filter((e) => e.from === hoveredNode || e.to === hoveredNode).length} connections
           </span>
+          {nodeAnnotations.has(hoveredNode) && (
+            <span className="node-info-annotations">
+              · {nodeAnnotations.get(hoveredNode).length} note{nodeAnnotations.get(hoveredNode).length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       )}
     </div>

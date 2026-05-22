@@ -256,7 +256,7 @@ export async function deleteShareToken(token) {
 // Annotations
 // ------------------------------------------------------------------
 
-export async function addAnnotation(slug, { nodeType, edgeKey, text, author }) {
+export async function addAnnotation(slug, { nodeType, edgeKey, text, author, annotationType }) {
   const database = await getDb();
   if (!database) return null;
 
@@ -265,6 +265,7 @@ export async function addAnnotation(slug, { nodeType, edgeKey, text, author }) {
     slug,
     nodeType: nodeType || null,
     edgeKey: edgeKey || null,
+    annotationType: annotationType || 'context',
     text,
     author,
     createdAt: new Date(),

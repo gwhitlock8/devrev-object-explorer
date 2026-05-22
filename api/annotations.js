@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
     try {
       const body = await parseBody(req);
-      const { slug, nodeType, edgeKey, text, author } = body;
+      const { slug, nodeType, edgeKey, text, author, annotationType } = body;
 
       if (!slug) return json(res, 400, { error: 'Slug is required' });
       if (!text) return json(res, 400, { error: 'Text is required' });
@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       const annotation = await addAnnotation(slug, {
         nodeType: nodeType || null,
         edgeKey: edgeKey || null,
+        annotationType: annotationType || 'context',
         text,
         author: author || 'DevRev Team',
       });

@@ -8,6 +8,7 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
   const [creatingShare, setCreatingShare] = useState(false);
   const [annotationText, setAnnotationText] = useState('');
   const [annotationTarget, setAnnotationTarget] = useState('');
+  const [annotationType, setAnnotationType] = useState('context');
   const [annotationAuthor, setAnnotationAuthor] = useState('');
   const [addingAnnotation, setAddingAnnotation] = useState(false);
 
@@ -77,6 +78,7 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
           slug,
           text: annotationText.trim(),
           nodeType: annotationTarget || null,
+          annotationType,
           author: annotationAuthor || 'DevRev Team',
         }),
       });
@@ -219,15 +221,27 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
             />
             <div className="annotation-form-row">
               <select
+                value={annotationType}
+                onChange={(e) => setAnnotationType(e.target.value)}
+                className="share-select"
+              >
+                <option value="context">💬 Context</option>
+                <option value="recommendation">💡 Recommendation</option>
+                <option value="question">❓ Question</option>
+                <option value="highlight">⭐ Highlight</option>
+              </select>
+              <select
                 value={annotationTarget}
                 onChange={(e) => setAnnotationTarget(e.target.value)}
                 className="share-select"
               >
-                <option value="">General note</option>
+                <option value="">Pin to: General</option>
                 {nodeTypes.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>Pin to: {t}</option>
                 ))}
               </select>
+            </div>
+            <div className="annotation-form-row">
               <input
                 type="text"
                 className="annotation-author-input"

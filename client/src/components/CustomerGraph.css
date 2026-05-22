@@ -242,3 +242,106 @@
   font-size: 10px;
   color: var(--n700);
 }
+
+.node-info-annotations {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--y400);
+}
+
+/* Annotation toggle */
+.annotation-toggle {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n700);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 6;
+}
+
+.annotation-toggle.active {
+  border-color: var(--y400);
+  color: var(--y400);
+}
+
+.annotation-toggle:hover {
+  border-color: var(--y400);
+  color: var(--y400);
+}
+
+/* Annotation pulse ring */
+@keyframes pulse-ring {
+  0% { opacity: 0.3; transform-origin: center; }
+  50% { opacity: 0.1; }
+  100% { opacity: 0.3; }
+}
+
+.annotation-pulse {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+.annotation-count {
+  font-family: 'Chip Mono', monospace;
+  font-size: 8px;
+  fill: var(--n600);
+}
+
+/* Annotation panel content */
+.annotation-type-badge {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--n1300);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.annotation-panel-text {
+  font-family: 'Chip Text', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--n100);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.annotation-panel-meta {
+  display: flex;
+  gap: 12px;
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n700);
+}
+
+.annotation-panel-author {
+  color: var(--n600);
+}
+
+.annotation-sibling {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--n1100);
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.annotation-sibling:hover {
+  background: var(--n1000);
+}
+
+.annotation-sibling-text {
+  font-size: 12px;
+  color: var(--n600);
+  line-height: 1.4;
+}

@@ -294,18 +294,16 @@ export default function CustomerOrgView() {
           </div>
         )}
 
-        {/* Annotations display */}
-        {data.annotations?.length > 0 && (
+        {/* General annotations (not pinned to a node) shown below graph */}
+        {data.annotations?.filter((a) => !a.nodeType && !a.edgeKey).length > 0 && (
           <div className="annotations-section">
-            <div className="annotations-title">Notes</div>
+            <div className="annotations-title">General notes</div>
             <div className="annotations-list">
-              {data.annotations.map((a) => (
-                <div key={a.id} className="annotation-card">
+              {data.annotations.filter((a) => !a.nodeType && !a.edgeKey).map((a) => (
+                <div key={a.id} className="annotation-card" style={{ borderLeftColor: a.annotationType === 'recommendation' ? '#7ADB12' : a.annotationType === 'question' ? '#FFE600' : a.annotationType === 'highlight' ? '#F35106' : '#5996FF' }}>
                   <div className="annotation-text">{a.text}</div>
                   <div className="annotation-meta">
                     <span className="annotation-author">{a.author}</span>
-                    {a.nodeType && <span className="annotation-target">on {a.nodeType}</span>}
-                    {a.edgeKey && <span className="annotation-target">on {a.edgeKey}</span>}
                   </div>
                 </div>
               ))}

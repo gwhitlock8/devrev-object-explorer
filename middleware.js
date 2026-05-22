@@ -1,7 +1,7 @@
 import { verifySessionToken, COOKIE_NAME, ORG_COOKIE_PREFIX, parseCookies } from './api/_lib/auth.js';
 
 export const config = {
-  matcher: ['/api/discover', '/api/orgs', '/api/share', '/api/annotations'],
+  matcher: ['/api/discover', '/api/orgs', '/api/share', '/api/annotations', '/api/org-delete'],
 };
 
 // Only protect admin-only API routes at the middleware level.

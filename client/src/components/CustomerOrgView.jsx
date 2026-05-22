@@ -12,6 +12,8 @@ export default function CustomerOrgView() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [fetchError, setFetchError] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -20,39 +22,55 @@ export default function CustomerOrgView() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchOrg();
+    if (slug) fetchOrg();
   }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchOrg() {
     setLoading(true);
+    setFetchError('');
+    setNotFound(false);
+
     try {
       let url = `/api/customer/${slug}`;
       if (shareToken) url += `?token=${shareToken}`;
 
+      console.log('[CustomerOrgView] Fetching:', url);
       const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
+      console.log('[CustomerOrgView] Response status:', res.status);
 
       if (res.status === 401) {
-        const body = await res.json();
+        let body = {};
+        try { body = await res.json(); } catch { /* non-JSON 401 */ }
         if (body.needsOrgAuth) {
           setNeedsAuth(true);
-          setLoading(false);
-          return;
+        } else {
+          setNeedsAuth(true); // Default to showing password gate for any 401
         }
-      }
-
-      if (res.status === 404) {
-        setData(null);
         setLoading(false);
         return;
       }
 
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-        setNeedsAuth(false);
+      if (res.status === 404) {
+        setNotFound(true);
+        setLoading(false);
+        return;
       }
-    } catch {
-      /* network error */
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('[CustomerOrgView] Unexpected response:', res.status, text);
+        setFetchError(`Server returned ${res.status}`);
+        setLoading(false);
+        return;
+      }
+
+      const json = await res.json();
+      console.log('[CustomerOrgView] Data loaded:', json.orgName);
+      setData(json);
+      setNeedsAuth(false);
+    } catch (err) {
+      console.error('[CustomerOrgView] Fetch error:', err);
+      setFetchError(err.message || 'Network error');
     } finally {
       setLoading(false);
     }
@@ -112,6 +130,26 @@ export default function CustomerOrgView() {
     );
   }
 
+  // Fetch error
+  if (fetchError) {
+    return (
+      <div className="auth-page">
+        <div className="auth-box">
+          <h1>
+            <span>Error</span>
+          </h1>
+          <p>{fetchError}</p>
+          <button type="button" className="auth-btn" onClick={fetchOrg}>
+            Retry
+          </button>
+          <Link to="/admin/dashboard" className="auth-link">
+            &larr; Back to dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // Org password gate
   if (needsAuth) {
     return (
@@ -144,14 +182,14 @@ export default function CustomerOrgView() {
   }
 
   // Not found
-  if (!data) {
+  if (notFound || !data) {
     return (
       <div className="auth-page">
         <div className="auth-box">
           <h1>Not <span>Found</span></h1>
           <p>No object model found for &quot;{slug}&quot;.</p>
-          <Link to="/" className="auth-link">
-            &larr; Back to home
+          <Link to="/admin/dashboard" className="auth-link">
+            &larr; Back to dashboard
           </Link>
         </div>
       </div>

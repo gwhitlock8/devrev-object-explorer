@@ -64,6 +64,25 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleDelete(slug, orgName) {
+    if (!confirm(`Delete "${orgName}" and all its data? This cannot be undone.`)) return;
+    try {
+      const res = await fetch('/api/org-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ slug }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Delete failed');
+      }
+      await fetchOrgs();
+    } catch (err) {
+      alert(`Delete failed: ${err.message}`);
+    }
+  }
+
   function formatDate(d) {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('en-US', {
@@ -165,22 +184,32 @@ export default function AdminDashboard() {
           </div>
         )}
         {orgs.map((org) => (
-          <Link key={org.slug} to={`/customer/${org.slug}`} className="admin-org-card">
-            <div className="org-card-left">
-              <div className="org-card-name">{org.orgName}</div>
-              <div className="org-card-slug">/customer/{org.slug}</div>
-            </div>
-            <div className="org-card-right">
-              <div className="org-card-date">
-                <span className="org-card-label">Last refreshed</span>
-                <span>{formatDate(org.lastRefreshed)}</span>
+          <div key={org.slug} className="admin-org-card-wrapper">
+            <Link to={`/customer/${org.slug}`} className="admin-org-card">
+              <div className="org-card-left">
+                <div className="org-card-name">{org.orgName}</div>
+                <div className="org-card-slug">/customer/{org.slug}</div>
               </div>
-              <div className="org-card-date">
-                <span className="org-card-label">Created</span>
-                <span>{formatDate(org.discoveredAt)}</span>
+              <div className="org-card-right">
+                <div className="org-card-date">
+                  <span className="org-card-label">Last refreshed</span>
+                  <span>{formatDate(org.lastRefreshed)}</span>
+                </div>
+                <div className="org-card-date">
+                  <span className="org-card-label">Created</span>
+                  <span>{formatDate(org.discoveredAt)}</span>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+            <button
+              type="button"
+              className="org-delete-btn"
+              onClick={(e) => { e.preventDefault(); handleDelete(org.slug, org.orgName); }}
+              title="Delete org"
+            >
+              ×
+            </button>
+          </div>
         ))}
       </div>
     </div>

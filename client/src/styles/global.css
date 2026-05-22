@@ -673,6 +673,40 @@ a {
   color: var(--n800);
 }
 
+.admin-org-card-wrapper {
+  position: relative;
+}
+
+.org-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n700);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-org-card-wrapper:hover .org-delete-btn {
+  opacity: 1;
+}
+
+.org-delete-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(201, 6, 81, 0.1);
+}
+
 .admin-empty {
   text-align: center;
   padding: 48px;

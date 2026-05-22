@@ -144,6 +144,26 @@ export async function verifyOrgPassword(slug, password) {
 }
 
 // ------------------------------------------------------------------
+// Delete org and all related data
+// ------------------------------------------------------------------
+
+export async function deleteCustomerOrg(slug) {
+  const database = await getDb();
+  if (!database) {
+    throw new Error('Database connection unavailable.');
+  }
+
+  // Delete the customer document
+  await database.collection('customers').deleteOne({ slug });
+  // Delete all share tokens for this org
+  await database.collection('share_tokens').deleteMany({ slug });
+  // Delete all annotations for this org
+  await database.collection('annotations').deleteMany({ slug });
+
+  return { deleted: slug };
+}
+
+// ------------------------------------------------------------------
 // Snapshots (for diff view) - keep last 3
 // ------------------------------------------------------------------
 

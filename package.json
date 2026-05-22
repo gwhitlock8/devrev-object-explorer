@@ -1,12 +1,27 @@
 {
   "name": "devrev-object-explorer",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'Static site with serverless functions'",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:api\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:api": "vercel dev --listen 3001",
+    "build": "cd client && npm install && npm run build",
     "start": "vercel dev"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "jose": "^5.9.6",
+    "mongodb": "^6.12.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "vite": "^5.4.11"
+  }
 }

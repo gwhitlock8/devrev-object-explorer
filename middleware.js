@@ -1,29 +1,32 @@
-// Edge middleware: password-protect all /customer/* routes
-// Set the password via Vercel env var: CUSTOMER_PASSWORD
+import { verifySessionToken, COOKIE_NAME, parseCookies } from './api/_lib/auth.js';
 
 export const config = {
-  matcher: '/customer/:path*',
+  matcher: ['/customer/:path+', '/api/discover', '/api/customer/:path*'],
 };
 
-export default function middleware(req) {
-  const auth = req.headers.get('authorization');
+export default async function middleware(request) {
+  const { pathname } = new URL(request.url);
 
-  if (auth) {
-    const [scheme, encoded] = auth.split(' ');
-    if (scheme === 'Basic') {
-      const decoded = atob(encoded);
-      const [user, pass] = decoded.split(':');
-      // Password is set via CUSTOMER_PASSWORD env var in Vercel
-      if (pass === process.env.CUSTOMER_PASSWORD) {
-        return;
-      }
-    }
+  if (pathname === '/customer' || pathname === '/customer/') {
+    return;
   }
 
-  return new Response('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Customer Object Explorer"',
-    },
-  });
+  const cookies = parseCookies(request.headers.get('cookie') || '');
+  const token = cookies[COOKIE_NAME];
+  const authenticated = token ? await verifySessionToken(token) : false;
+
+  if (authenticated) {
+    return;
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const loginUrl = new URL('/customer', request.url);
+  loginUrl.searchParams.set('redirect', pathname);
+  return Response.redirect(loginUrl, 302);
 }

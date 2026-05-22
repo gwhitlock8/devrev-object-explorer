@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import CustomerGraph from './CustomerGraph.jsx';
 
 function truncate(str, len = 24) {
@@ -10,13 +10,19 @@ function truncate(str, len = 24) {
 export default function CustomerView() {
   const { name: slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pat, setPat] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [data, setData] = useState(null);
-  const [loadingCached, setLoadingCached] = useState(!!slug);
+  const [data, setData] = useState(() => location.state?.discovery || null);
+  const [loadingCached, setLoadingCached] = useState(!!slug && !location.state?.discovery);
 
   useEffect(() => {
+    // If we already have data whose slug matches, skip the fetch
+    if (data?.slug === slug) {
+      setLoadingCached(false);
+      return;
+    }
     if (!slug) {
       setLoadingCached(false);
       return;
@@ -25,7 +31,10 @@ export default function CustomerView() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/customer/${slug}`, { credentials: 'include' });
+        const res = await fetch(`/api/customer/${slug}`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
         if (res.status === 401) {
           navigate(`/customer?redirect=/customer/${slug}`);
           return;
@@ -44,7 +53,7 @@ export default function CustomerView() {
     return () => {
       cancelled = true;
     };
-  }, [slug, navigate]);
+  }, [slug, navigate, data?.slug]);
 
   async function discover() {
     const token = pat.trim();
@@ -58,13 +67,19 @@ export default function CustomerView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify({ pat: token }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Discovery failed');
       setData(json);
       setPat('');
-      if (json.slug) navigate(`/customer/${json.slug}`, { replace: true });
+      if (json.slug) {
+        navigate(`/customer/${json.slug}`, {
+          replace: true,
+          state: { discovery: json },
+        });
+      }
     } catch (err) {
       setError(err.message);
     } finally {

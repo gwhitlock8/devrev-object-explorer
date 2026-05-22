@@ -1,6 +1,7 @@
 export function json(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.end(JSON.stringify(body));
 }
 

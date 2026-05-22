@@ -1,14 +1,39 @@
 const BASE = 'https://api.devrev.ai';
 
-export async function runDiscovery(pat) {
-  const headers = {
-    Authorization: pat,
+function buildHeaders(pat) {
+  const token = pat.trim();
+  return {
+    // DevRev accepts raw PAT or "Bearer <PAT>" — normalize to Bearer per API docs
+    Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
+}
 
-  const orgRes = await fetch(`${BASE}/dev-orgs.self`, { method: 'GET', headers });
-  if (!orgRes.ok) throw new Error(`Auth failed: ${orgRes.status} ${orgRes.statusText}`);
-  const orgData = await orgRes.json();
+async function fetchDevOrg(headers) {
+  const orgRes = await fetch(`${BASE}/dev-orgs.get`, { method: 'GET', headers });
+  if (!orgRes.ok) {
+    let detail = '';
+    try {
+      const err = await orgRes.json();
+      detail = err.message || err.detail || '';
+    } catch {
+      /* non-JSON error body */
+    }
+    if (orgRes.status === 401 || orgRes.status === 403) {
+      throw new Error(
+        detail || 'Invalid PAT or insufficient scopes. Ensure the token has dev_org:read and related list scopes.'
+      );
+    }
+    throw new Error(
+      detail || `Failed to load organization (${orgRes.status} ${orgRes.statusText})`
+    );
+  }
+  return orgRes.json();
+}
+
+export async function runDiscovery(pat) {
+  const headers = buildHeaders(pat);
+  const orgData = await fetchDevOrg(headers);
 
   const orgName = orgData.dev_org?.display_name || 'Unknown Org';
 

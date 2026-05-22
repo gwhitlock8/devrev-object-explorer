@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-export default function CustomerLogin() {
+export default function CustomerLogin({ onSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,15 @@ export default function CustomerLogin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      navigate(redirect.startsWith('/customer') ? redirect : '/customer');
+
+      const target = redirect.startsWith('/customer') ? redirect : '/customer';
+      const stayingOnGate = target === '/customer' || target === '/customer/';
+
+      if (stayingOnGate) {
+        onSuccess?.();
+      } else {
+        navigate(target);
+      }
     } catch (err) {
       setError(err.message);
     } finally {

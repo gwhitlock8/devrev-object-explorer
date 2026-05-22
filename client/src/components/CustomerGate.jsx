@@ -22,6 +22,14 @@ export default function CustomerGate() {
     );
   }
 
-  if (!authenticated) return <CustomerLogin />;
+  if (!authenticated) {
+    return (
+      <CustomerLogin
+        onSuccess={() => {
+          setAuthenticated(true);
+        }}
+      />
+    );
+  }
   return <CustomerView />;
 }

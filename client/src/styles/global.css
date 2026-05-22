@@ -441,6 +441,30 @@ a {
   padding: 4px 8px;
 }
 
+.graph-section {
+  margin-bottom: 32px;
+}
+
+.graph-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.graph-section-title {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--n700);
+}
+
+.graph-section-hint {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n800);
+}
+
 .rel-section {
   margin-top: 32px;
 }

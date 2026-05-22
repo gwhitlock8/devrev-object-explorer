@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import CustomerGraph from './CustomerGraph.jsx';
 
 function truncate(str, len = 24) {
   if (!str) return '';
@@ -108,7 +109,7 @@ export default function CustomerView() {
           </button>
           {error && <div className="auth-error visible">{error}</div>}
           <Link to="/" className="auth-link">
-            ← Back to public explorer
+            &larr; Back to public explorer
           </Link>
         </div>
         {loading && (
@@ -154,6 +155,22 @@ export default function CustomerView() {
             </div>
           ))}
         </div>
+
+        {/* Interactive relationship graph */}
+        {data.model.relationships.length > 0 && (
+          <div className="graph-section">
+            <div className="graph-section-header">
+              <div className="graph-section-title">Relationship Graph</div>
+              <div className="graph-section-hint">Click edges to see real examples &middot; Click nodes to highlight connections</div>
+            </div>
+            <CustomerGraph
+              relationships={data.model.relationships}
+              orgName={data.orgName}
+            />
+          </div>
+        )}
+
+        {/* Category inventory cards */}
         <div className="cat-grid">
           {data.model.categories.map((cat) => (
             <div key={cat.id} className="cat-card">
@@ -177,22 +194,6 @@ export default function CustomerView() {
             </div>
           ))}
         </div>
-        {data.model.relationships.length > 0 && (
-          <div className="rel-section">
-            <div className="rel-title">Discovered Relationships</div>
-            <div className="rel-list">
-              {data.model.relationships.slice(0, 30).map((r, i) => (
-                <div key={i} className="rel-item">
-                  <span className="rel-from">{truncate(r.from)}</span>
-                  <span className="rel-arrow">→</span>
-                  <span className="rel-label">{r.label}</span>
-                  <span className="rel-arrow">→</span>
-                  <span className="rel-to">{truncate(r.to)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

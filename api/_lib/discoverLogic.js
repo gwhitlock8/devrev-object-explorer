@@ -31,43 +31,66 @@ async function fetchDevOrg(headers) {
   return orgRes.json();
 }
 
+// Safely fetch a list endpoint - returns empty on failure
+async function safeFetch(url, headers, body = {}) {
+  try {
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function runDiscovery(pat) {
   const headers = buildHeaders(pat);
   const orgData = await fetchDevOrg(headers);
 
   const orgName = orgData.dev_org?.display_name || 'Unknown Org';
 
-  const [partsRes, issuesRes, ticketsRes, accountsRes, syncRes, schemasRes, articlesRes, groupsRes] =
+  // Phase 1: Fetch core objects
+  const [partsData, issuesData, ticketsData, accountsData, syncData, schemasData, articlesData, groupsData, opportunitiesData, conversationsData] =
     await Promise.all([
-      fetch(`${BASE}/parts.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 100 }) }),
-      fetch(`${BASE}/works.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50, type: ['issue'] }) }),
-      fetch(`${BASE}/works.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50, type: ['ticket'] }) }),
-      fetch(`${BASE}/accounts.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50 }) }),
-      fetch(`${BASE}/sync-units.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50 }) }),
-      fetch(`${BASE}/custom-objects.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50 }) }),
-      fetch(`${BASE}/articles.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 20 }) }),
-      fetch(`${BASE}/groups.list`, { method: 'POST', headers, body: JSON.stringify({ limit: 50 }) }),
+      safeFetch(`${BASE}/parts.list`, headers, { limit: 100 }),
+      safeFetch(`${BASE}/works.list`, headers, { limit: 50, type: ['issue'] }),
+      safeFetch(`${BASE}/works.list`, headers, { limit: 50, type: ['ticket'] }),
+      safeFetch(`${BASE}/accounts.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/sync-units.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/custom-objects.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/articles.list`, headers, { limit: 20 }),
+      safeFetch(`${BASE}/groups.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/works.list`, headers, { limit: 30, type: ['opportunity'] }),
+      safeFetch(`${BASE}/conversations.list`, headers, { limit: 20 }),
     ]);
 
-  const partsData = partsRes.ok ? await partsRes.json() : { parts: [] };
-  const issuesData = issuesRes.ok ? await issuesRes.json() : { works: [] };
-  const ticketsData = ticketsRes.ok ? await ticketsRes.json() : { works: [] };
-  const accountsData = accountsRes.ok ? await accountsRes.json() : { accounts: [] };
-  const syncData = syncRes.ok ? await syncRes.json() : { sync_units: [] };
-  const schemasData = schemasRes.ok ? await schemasRes.json() : { custom_objects: [] };
-  const articlesData = articlesRes.ok ? await articlesRes.json() : { articles: [] };
-  const groupsData = groupsRes.ok ? await groupsRes.json() : { groups: [] };
+  // Phase 2: Try to fetch links for relationship discovery
+  const linksData = await safeFetch(`${BASE}/links.list`, headers, { limit: 100 });
+
+  const parts = partsData?.parts || [];
+  const issues = issuesData?.works || [];
+  const tickets = ticketsData?.works || [];
+  const accounts = accountsData?.accounts || [];
+  const syncUnits = syncData?.sync_units || [];
+  const customObjects = schemasData?.custom_objects || [];
+  const articles = articlesData?.articles || [];
+  const groups = groupsData?.groups || [];
+  const opportunities = opportunitiesData?.works || [];
+  const conversations = conversationsData?.conversations || [];
+  const links = linksData?.links || [];
 
   const model = buildObjectModel({
     org: orgData.dev_org,
-    parts: partsData.parts || [],
-    issues: issuesData.works || [],
-    tickets: ticketsData.works || [],
-    accounts: accountsData.accounts || [],
-    syncUnits: syncData.sync_units || [],
-    customObjects: schemasData.custom_objects || [],
-    articles: articlesData.articles || [],
-    groups: groupsData.groups || [],
+    parts,
+    issues,
+    tickets,
+    accounts,
+    syncUnits,
+    customObjects,
+    articles,
+    groups,
+    opportunities,
+    conversations,
+    links,
   });
 
   return {
@@ -84,25 +107,226 @@ export function slugifyOrgName(orgName) {
     .replace(/^-+|-+$/g, '');
 }
 
+// ------------------------------------------------------------------
+// Helpers to extract the object type from a DON id or object
+// ------------------------------------------------------------------
+function typeFromDon(don) {
+  if (!don) return null;
+  // don:core:dvrv-us-1:devo/0:issue/12345 → issue
+  const parts = don.split(':');
+  const last = parts[parts.length - 1]; // e.g. "issue/12345"
+  const type = last.split('/')[0];
+  return type || null;
+}
+
+function friendlyType(raw) {
+  const map = {
+    issue: 'Issue',
+    ticket: 'Ticket',
+    opportunity: 'Opportunity',
+    product: 'Product',
+    capability: 'Capability',
+    feature: 'Feature',
+    enhancement: 'Enhancement',
+    runnable: 'Runnable',
+    linkable: 'Linkable',
+    account: 'Account',
+    conversation: 'Conversation',
+    article: 'Article',
+    group: 'Group',
+    sync_unit: 'Sync Unit',
+    rev_org: 'Rev Org',
+    dev_user: 'Dev User',
+    meeting: 'Meeting',
+    contact: 'Contact',
+    task: 'Task',
+    sprint: 'Sprint',
+    tag: 'Tag',
+    custom_object: 'Custom Object',
+  };
+  return map[raw] || raw?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Unknown';
+}
+
+function objLabel(obj) {
+  return obj?.display_id || obj?.display_name || obj?.name || obj?.title || obj?.id?.split('/').pop() || '?';
+}
+
+// ------------------------------------------------------------------
+// Relationship extraction
+// ------------------------------------------------------------------
+
 function buildObjectModel(data) {
   const categories = [];
-  const relationships = [];
-  const stats = {
-    totalParts: data.parts.length,
-    totalAccounts: data.accounts.length,
-    totalSyncUnits: data.syncUnits.length,
-    totalArticles: data.articles.length,
-    totalGroups: data.groups.length,
-    hasIssues: data.issues.length > 0,
-    hasTickets: data.tickets.length > 0,
-  };
+  const typeRelationships = new Map(); // key: "FromType→ToType→label" → { from, to, label, examples[] }
 
+  function addRelationship(fromType, toType, label, example) {
+    const key = `${fromType}→${toType}→${label}`;
+    if (!typeRelationships.has(key)) {
+      typeRelationships.set(key, { from: fromType, to: toType, label, examples: [] });
+    }
+    const rel = typeRelationships.get(key);
+    if (example && rel.examples.length < 3) {
+      rel.examples.push(example);
+    }
+  }
+
+  // --- Extract relationships from part hierarchy ---
   const products = data.parts.filter((p) => p.type === 'product');
   const capabilities = data.parts.filter((p) => p.type === 'capability');
   const features = data.parts.filter((p) => p.type === 'feature');
   const enhancements = data.parts.filter((p) => p.type === 'enhancement');
   const runnables = data.parts.filter((p) => p.type === 'runnable');
   const linkables = data.parts.filter((p) => p.type === 'linkable');
+
+  // Build a lookup of part id → part for labeling
+  const partMap = new Map();
+  data.parts.forEach((p) => partMap.set(p.id, p));
+
+  data.parts.forEach((part) => {
+    if (part.parent_part) {
+      const parentId = part.parent_part.id || part.parent_part;
+      const parent = partMap.get(parentId);
+      const parentType = parent ? friendlyType(parent.type) : 'Product';
+      const childType = friendlyType(part.type);
+      addRelationship(parentType, childType, 'contains', {
+        from: { id: parentId, label: objLabel(parent || { id: parentId }) },
+        to: { id: part.id, label: objLabel(part) },
+      });
+    }
+  });
+
+  // --- Issues → Part (applies_to_part) ---
+  data.issues.forEach((issue) => {
+    const partRef = issue.applies_to_part || issue.part;
+    if (partRef) {
+      const partId = partRef.id || partRef;
+      const part = partMap.get(partId);
+      const partType = part ? friendlyType(part.type) : 'Feature';
+      addRelationship('Issue', partType, 'applies to', {
+        from: { id: issue.id, label: objLabel(issue) },
+        to: { id: partId, label: objLabel(part || { id: partId }) },
+      });
+    }
+    // Issues → owned_by (Dev User)
+    if (issue.owned_by?.length) {
+      const owner = issue.owned_by[0];
+      addRelationship('Dev User', 'Issue', 'owns', {
+        from: { id: owner.id || owner, label: owner.display_name || objLabel(owner) },
+        to: { id: issue.id, label: objLabel(issue) },
+      });
+    }
+    // Issues → sprint
+    if (issue.sprint) {
+      const sprintRef = issue.sprint;
+      addRelationship('Sprint', 'Issue', 'contains', {
+        from: { id: sprintRef.id || sprintRef, label: sprintRef.display_id || objLabel(sprintRef) },
+        to: { id: issue.id, label: objLabel(issue) },
+      });
+    }
+  });
+
+  // --- Tickets → Account ---
+  data.tickets.forEach((ticket) => {
+    const acctRef = ticket.rev_org?.account || ticket.account;
+    if (acctRef) {
+      const acctId = acctRef.id || acctRef;
+      addRelationship('Ticket', 'Account', 'filed for', {
+        from: { id: ticket.id, label: objLabel(ticket) },
+        to: { id: acctId, label: acctRef.display_name || acctId.split('/').pop() },
+      });
+    }
+    // Tickets → Part
+    const partRef = ticket.applies_to_part || ticket.part;
+    if (partRef) {
+      const partId = partRef.id || partRef;
+      const part = partMap.get(partId);
+      const partType = part ? friendlyType(part.type) : 'Feature';
+      addRelationship('Ticket', partType, 'related to', {
+        from: { id: ticket.id, label: objLabel(ticket) },
+        to: { id: partId, label: objLabel(part || { id: partId }) },
+      });
+    }
+  });
+
+  // --- Opportunities → Account ---
+  data.opportunities.forEach((opp) => {
+    const acctRef = opp.account || opp.rev_org?.account;
+    if (acctRef) {
+      const acctId = acctRef.id || acctRef;
+      addRelationship('Opportunity', 'Account', 'belongs to', {
+        from: { id: opp.id, label: objLabel(opp) },
+        to: { id: acctId, label: acctRef.display_name || acctId.split('/').pop() },
+      });
+    }
+    // Opportunity owner
+    if (opp.owned_by?.length) {
+      const owner = opp.owned_by[0];
+      addRelationship('Dev User', 'Opportunity', 'owns', {
+        from: { id: owner.id || owner, label: owner.display_name || objLabel(owner) },
+        to: { id: opp.id, label: objLabel(opp) },
+      });
+    }
+  });
+
+  // --- Articles → Part ---
+  data.articles.forEach((article) => {
+    const partRef = article.applies_to_part || article.parent;
+    if (partRef) {
+      const partId = partRef.id || partRef;
+      const part = partMap.get(partId);
+      addRelationship('Article', part ? friendlyType(part.type) : 'Product', 'documents', {
+        from: { id: article.id, label: objLabel(article) },
+        to: { id: partId, label: objLabel(part || { id: partId }) },
+      });
+    }
+  });
+
+  // --- Sync Units → external system ---
+  data.syncUnits.forEach((s) => {
+    if (s.external_system_display_name) {
+      addRelationship('Sync Unit', 'Product', `syncs from ${s.external_system_display_name}`, {
+        from: { id: s.id, label: objLabel(s) },
+        to: { id: 'external', label: s.external_system_display_name },
+      });
+    }
+  });
+
+  // --- Conversations → ticket (if converted) ---
+  data.conversations.forEach((conv) => {
+    if (conv.ticket) {
+      addRelationship('Conversation', 'Ticket', 'converted to', {
+        from: { id: conv.id, label: objLabel(conv) },
+        to: { id: conv.ticket.id || conv.ticket, label: objLabel(conv.ticket) },
+      });
+    }
+  });
+
+  // --- Links (explicit cross-object relationships) ---
+  data.links.forEach((link) => {
+    const sourceType = typeFromDon(link.source?.id || link.source);
+    const targetType = typeFromDon(link.target?.id || link.target);
+    if (sourceType && targetType) {
+      const linkLabel = link.link_type?.replace(/_/g, ' ') || 'linked to';
+      addRelationship(friendlyType(sourceType), friendlyType(targetType), linkLabel, {
+        from: { id: link.source?.id || link.source, label: objLabel(link.source) },
+        to: { id: link.target?.id || link.target, label: objLabel(link.target) },
+      });
+    }
+  });
+
+  // --- Groups → Dev User ---
+  data.groups.forEach((g) => {
+    if (g.member_count > 0 || g.members?.length) {
+      addRelationship('Group', 'Dev User', 'contains', {
+        from: { id: g.id, label: objLabel(g) },
+        to: { id: 'members', label: `${g.member_count || g.members?.length || '?'} members` },
+      });
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // Build categories (for the inventory cards below the graph)
+  // ------------------------------------------------------------------
 
   if (products.length || capabilities.length || features.length) {
     categories.push({
@@ -119,16 +343,6 @@ function buildObjectModel(data) {
       ],
     });
   }
-
-  data.parts.forEach((part) => {
-    if (part.parent_part) {
-      relationships.push({
-        from: part.parent_part.id || part.parent_part,
-        to: part.id,
-        label: 'contains',
-      });
-    }
-  });
 
   if (data.accounts.length) {
     categories.push({
@@ -163,6 +377,14 @@ function buildObjectModel(data) {
       desc: subtypes.length ? `Subtypes: ${subtypes.slice(0, 5).join(', ')}` : 'Customer requests',
     });
   }
+  if (data.opportunities.length) {
+    workObjects.push({
+      id: 'opportunities',
+      name: `Opportunities (${data.opportunities.length}+)`,
+      type: 'Opportunity',
+      desc: 'Active sales deals',
+    });
+  }
   if (workObjects.length) {
     categories.push({
       id: 'work',
@@ -183,16 +405,6 @@ function buildObjectModel(data) {
         type: 'Sync Unit',
         desc: s.external_system_display_name || s.sync_pack?.display_name || '',
       })),
-    });
-
-    data.syncUnits.forEach((s) => {
-      if (s.external_system_display_name) {
-        relationships.push({
-          from: s.id,
-          to: 'shared-memory',
-          label: `syncs from ${s.external_system_display_name}`,
-        });
-      }
     });
   }
 
@@ -237,6 +449,35 @@ function buildObjectModel(data) {
       })),
     });
   }
+
+  if (data.conversations.length) {
+    categories.push({
+      id: 'conversations',
+      label: 'Conversations',
+      color: '#C90651',
+      objects: data.conversations.slice(0, 10).map((c) => ({
+        id: c.id,
+        name: c.display_id || c.id,
+        type: 'Conversation',
+        desc: c.title || '',
+      })),
+    });
+  }
+
+  // Convert the relationship map to an array
+  const relationships = [...typeRelationships.values()];
+
+  const stats = {
+    totalParts: data.parts.length,
+    totalAccounts: data.accounts.length,
+    totalSyncUnits: data.syncUnits.length,
+    totalArticles: data.articles.length,
+    totalGroups: data.groups.length,
+    totalOpportunities: data.opportunities.length,
+    totalConversations: data.conversations.length,
+    hasIssues: data.issues.length > 0,
+    hasTickets: data.tickets.length > 0,
+  };
 
   return { categories, relationships, stats };
 }

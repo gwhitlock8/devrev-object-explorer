@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useToast } from './Toast.jsx';
 
 export default function AdminPanel({ slug, data, onAnnotationAdded }) {
+  const toast = useToast();
   const [shareHours, setShareHours] = useState('24');
   const [shareLinks, setShareLinks] = useState([]);
   const [creatingShare, setCreatingShare] = useState(false);
@@ -111,6 +113,7 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
   }
 
   // Export handlers
@@ -122,11 +125,12 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
     a.download = `${slug}-object-model.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('JSON exported');
   }
 
   function exportSVG() {
     const svg = document.querySelector('.customer-graph-svg');
-    if (!svg) return alert('No graph to export');
+    if (!svg) return toast.error('No graph to export');
     const clone = svg.cloneNode(true);
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     const blob = new Blob([clone.outerHTML], { type: 'image/svg+xml' });

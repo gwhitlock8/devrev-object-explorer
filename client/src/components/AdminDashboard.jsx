@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from './Toast.jsx';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -10,6 +11,8 @@ export default function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [copied, setCopied] = useState(null);
+  const [search, setSearch] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     fetchOrgs();
@@ -78,9 +81,10 @@ export default function AdminDashboard() {
         const data = await res.json();
         throw new Error(data.error || 'Delete failed');
       }
+      toast.success('Org deleted successfully');
       await fetchOrgs();
     } catch (err) {
-      alert(`Delete failed: ${err.message}`);
+      toast.error(`Delete failed: ${err.message}`);
     }
   }
 
@@ -88,6 +92,7 @@ export default function AdminDashboard() {
     const url = `${window.location.origin}/customer/${slug}`;
     navigator.clipboard.writeText(url);
     setCopied(slug);
+    toast.success('URL copied to clipboard');
     setTimeout(() => setCopied(null), 2000);
   }
 
@@ -187,6 +192,19 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Search */}
+      {orgs.length > 3 && (
+        <div className="admin-search">
+          <input
+            type="text"
+            className="admin-search-input"
+            placeholder="Search orgs by name or slug..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* Org list */}
       <div className="admin-org-list">
         {orgs.length === 0 && !showCreate && (
@@ -197,7 +215,13 @@ export default function AdminDashboard() {
             </button>
           </div>
         )}
-        {orgs.map((org) => {
+        {orgs
+          .filter((org) => {
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return org.orgName?.toLowerCase().includes(q) || org.slug?.toLowerCase().includes(q);
+          })
+          .map((org) => {
           const stale = daysSince(org.lastRefreshed);
           return (
             <div key={org.slug} className="admin-org-card-wrapper">
@@ -215,8 +239,8 @@ export default function AdminDashboard() {
                     <span>{formatDate(org.lastRefreshed)}</span>
                   </div>
                   <div className="org-card-date">
-                    <span className="org-card-label">Created</span>
-                    <span>{formatDate(org.discoveredAt)}</span>
+                    <span className="org-card-label">Customer views</span>
+                    <span>{org.viewCount || 0}{org.lastViewedAt ? ` · ${formatDate(org.lastViewedAt)}` : ''}</span>
                   </div>
                 </div>
               </Link>

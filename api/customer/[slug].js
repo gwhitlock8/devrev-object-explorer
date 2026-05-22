@@ -1,5 +1,5 @@
 import { isAuthenticated, isOrgAuthenticated, getShareTokenFromRequest } from '../_lib/auth.js';
-import { getCustomerBySlug, verifyShareToken, getAnnotations, getSnapshots } from '../_lib/db.js';
+import { getCustomerBySlug, verifyShareToken, getAnnotations, getSnapshots, recordCustomerView } from '../_lib/db.js';
 import { json } from '../_lib/handler.js';
 
 export default async function handler(req, res) {
@@ -33,6 +33,11 @@ export default async function handler(req, res) {
 
     if (!customer) {
       return json(res, 404, { error: 'Customer model not found' });
+    }
+
+    // Track customer views (non-admin)
+    if (!isAdmin) {
+      recordCustomerView(slug).catch(() => {}); // fire and forget
     }
 
     const annotations = await getAnnotations(slug);

@@ -1,10 +1,27 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DevRevLogo } from './DevRevLogo.jsx';
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isPresentation = location.pathname === '/';
   const isCustomerView = location.pathname.startsWith('/customer/');
+  const isAdminArea = location.pathname.startsWith('/admin');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/session', { credentials: 'include', cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(d.authenticated && d.role === 'admin'))
+      .catch(() => setIsAdmin(false));
+  }, [location.pathname]);
+
+  async function handleLogout() {
+    await fetch('/api/auth', { method: 'DELETE', credentials: 'include' });
+    setIsAdmin(false);
+    navigate('/');
+  }
 
   // On customer-facing pages, show a minimal nav (no admin link visible)
   if (isCustomerView) {
@@ -41,10 +58,15 @@ export default function Layout() {
           </NavLink>
           <NavLink
             to="/admin/dashboard"
-            className={({ isActive }) => `nav-link customer ${isActive || location.pathname.startsWith('/admin') ? 'active' : ''}`}
+            className={({ isActive }) => `nav-link customer ${isActive || isAdminArea ? 'active' : ''}`}
           >
             Manage
           </NavLink>
+          {isAdmin && (
+            <button type="button" className="nav-logout" onClick={handleLogout}>
+              Logout
+            </button>
+          )}
         </div>
       </nav>
       <main className={isPresentation ? 'page-full page-no-pad' : 'page-full'}>

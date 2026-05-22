@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import CustomerGraph from './CustomerGraph.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import DiffView from './DiffView.jsx';
+import { useToast } from './Toast.jsx';
 
 export default function CustomerOrgView() {
   const { slug } = useParams();
@@ -20,6 +21,7 @@ export default function CustomerOrgView() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (slug) fetchOrg();
@@ -113,9 +115,10 @@ export default function CustomerOrgView() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Refresh failed');
+      toast.success('Model refreshed successfully');
       await fetchOrg();
     } catch (err) {
-      alert(`Refresh failed: ${err.message}`);
+      toast.error(`Refresh failed: ${err.message}`);
     } finally {
       setRefreshing(false);
     }

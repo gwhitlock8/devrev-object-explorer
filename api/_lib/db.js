@@ -122,7 +122,7 @@ export async function listCustomers() {
     return [];
   }
   return database.collection('customers')
-    .find({}, { projection: { slug: 1, orgName: 1, orgId: 1, discoveredAt: 1, lastRefreshed: 1, _id: 0 } })
+    .find({}, { projection: { slug: 1, orgName: 1, orgId: 1, discoveredAt: 1, lastRefreshed: 1, lastViewedAt: 1, viewCount: 1, _id: 0 } })
     .sort({ lastRefreshed: -1 })
     .toArray();
 }
@@ -141,6 +141,19 @@ export async function verifyOrgPassword(slug, password) {
   const doc = await database.collection('customers').findOne({ slug }, { projection: { passwordHash: 1 } });
   if (!doc?.passwordHash) return false;
   return verifyPassword(password, doc.passwordHash);
+}
+
+// ------------------------------------------------------------------
+// Track customer views
+// ------------------------------------------------------------------
+
+export async function recordCustomerView(slug) {
+  const database = await getDb();
+  if (!database) return;
+  await database.collection('customers').updateOne(
+    { slug },
+    { $set: { lastViewedAt: new Date() }, $inc: { viewCount: 1 } }
+  );
 }
 
 // ------------------------------------------------------------------

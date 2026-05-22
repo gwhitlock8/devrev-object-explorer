@@ -2,11 +2,6 @@
   "installCommand": "npm install && cd client && npm install",
   "buildCommand": "cd client && npm run build",
   "outputDirectory": "client/dist",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "rewrites": [
     { "source": "/api/customer/:slug", "destination": "/api/customer/[slug]" },
     { "source": "/api/:path*", "destination": "/api/:path*" },

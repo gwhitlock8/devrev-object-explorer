@@ -77,9 +77,19 @@ a {
   padding: 12px 24px;
   border-bottom: 1px solid var(--n1000);
   background: rgba(22, 22, 22, 0.95);
+  backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 200;
+}
+
+.site-nav-overlay {
+  background: rgba(22, 22, 22, 0.7);
+  border-bottom-color: transparent;
+}
+
+.page-no-pad {
+  min-height: calc(100vh - 49px);
 }
 
 .site-nav-links {
@@ -677,34 +687,57 @@ a {
   position: relative;
 }
 
-.org-delete-btn {
+.org-card-actions {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 24px;
-  height: 24px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.admin-org-card-wrapper:hover .org-card-actions {
+  opacity: 1;
+}
+
+.org-copy-btn,
+.org-delete-btn {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--n1100);
   border: 1px solid var(--n900);
   color: var(--n700);
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.admin-org-card-wrapper:hover .org-delete-btn {
-  opacity: 1;
+.org-copy-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
 }
 
 .org-delete-btn:hover {
   border-color: var(--red);
   color: var(--red);
   background: rgba(201, 6, 81, 0.1);
+}
+
+.org-stale-badge {
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(243, 81, 6, 0.15);
+  color: var(--orange);
+  margin-left: 8px;
+  text-transform: uppercase;
 }
 
 .admin-empty {

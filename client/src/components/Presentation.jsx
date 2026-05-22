@@ -5,7 +5,7 @@ export default function Presentation() {
       src="/legacy/presentation.html"
       style={{
         width: '100%',
-        height: '100vh',
+        height: 'calc(100vh - 49px)',
         border: 'none',
         display: 'block',
         background: '#161616',

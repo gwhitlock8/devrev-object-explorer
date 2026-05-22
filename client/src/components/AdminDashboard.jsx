@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [createForm, setCreateForm] = useState({ pat: '', password: '', slug: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [copied, setCopied] = useState(null);
 
   useEffect(() => {
     fetchOrgs();
@@ -83,6 +84,13 @@ export default function AdminDashboard() {
     }
   }
 
+  function copyUrl(slug) {
+    const url = `${window.location.origin}/customer/${slug}`;
+    navigator.clipboard.writeText(url);
+    setCopied(slug);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
   function formatDate(d) {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('en-US', {
@@ -92,6 +100,12 @@ export default function AdminDashboard() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+  function daysSince(d) {
+    if (!d) return null;
+    const diff = Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24));
+    return diff;
   }
 
   if (loading) {
@@ -183,34 +197,50 @@ export default function AdminDashboard() {
             </button>
           </div>
         )}
-        {orgs.map((org) => (
-          <div key={org.slug} className="admin-org-card-wrapper">
-            <Link to={`/customer/${org.slug}`} className="admin-org-card">
-              <div className="org-card-left">
-                <div className="org-card-name">{org.orgName}</div>
-                <div className="org-card-slug">/customer/{org.slug}</div>
-              </div>
-              <div className="org-card-right">
-                <div className="org-card-date">
-                  <span className="org-card-label">Last refreshed</span>
-                  <span>{formatDate(org.lastRefreshed)}</span>
+        {orgs.map((org) => {
+          const stale = daysSince(org.lastRefreshed);
+          return (
+            <div key={org.slug} className="admin-org-card-wrapper">
+              <Link to={`/customer/${org.slug}`} className="admin-org-card">
+                <div className="org-card-left">
+                  <div className="org-card-name">
+                    {org.orgName}
+                    {stale > 30 && <span className="org-stale-badge">Stale</span>}
+                  </div>
+                  <div className="org-card-slug">/customer/{org.slug}</div>
                 </div>
-                <div className="org-card-date">
-                  <span className="org-card-label">Created</span>
-                  <span>{formatDate(org.discoveredAt)}</span>
+                <div className="org-card-right">
+                  <div className="org-card-date">
+                    <span className="org-card-label">Last refreshed</span>
+                    <span>{formatDate(org.lastRefreshed)}</span>
+                  </div>
+                  <div className="org-card-date">
+                    <span className="org-card-label">Created</span>
+                    <span>{formatDate(org.discoveredAt)}</span>
+                  </div>
                 </div>
+              </Link>
+              <div className="org-card-actions">
+                <button
+                  type="button"
+                  className="org-copy-btn"
+                  onClick={(e) => { e.preventDefault(); copyUrl(org.slug); }}
+                  title="Copy customer URL"
+                >
+                  {copied === org.slug ? '✓' : '🔗'}
+                </button>
+                <button
+                  type="button"
+                  className="org-delete-btn"
+                  onClick={(e) => { e.preventDefault(); handleDelete(org.slug, org.orgName); }}
+                  title="Delete org"
+                >
+                  ×
+                </button>
               </div>
-            </Link>
-            <button
-              type="button"
-              className="org-delete-btn"
-              onClick={(e) => { e.preventDefault(); handleDelete(org.slug, org.orgName); }}
-              title="Delete org"
-            >
-              ×
-            </button>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

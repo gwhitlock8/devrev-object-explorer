@@ -512,3 +512,555 @@ a {
   color: var(--n800);
   font-style: italic;
 }
+
+/* ==== Admin Dashboard ==== */
+
+.admin-dashboard {
+  min-height: calc(100vh - 49px);
+  padding: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.admin-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-header-left h1 {
+  font-size: 24px;
+}
+
+.admin-header-left h1 span {
+  color: var(--y400);
+}
+
+.admin-badge {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: var(--n1100);
+  border: 1px solid var(--n1000);
+  color: var(--n700);
+}
+
+.admin-create-btn {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: var(--y400);
+  border: none;
+  color: var(--n1300);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-create-btn:hover {
+  box-shadow: 0 4px 16px rgba(255, 230, 0, 0.3);
+}
+
+.admin-create-panel {
+  background: var(--n1200);
+  border: 1px solid var(--n1000);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.create-form-title {
+  font-family: 'Chip Display', system-ui, sans-serif;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.create-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.create-field label {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--n700);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.create-field .required {
+  color: var(--red);
+}
+
+.create-field .optional {
+  color: var(--n800);
+}
+
+.create-field-hint {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n800);
+  margin-top: 2px;
+  display: block;
+}
+
+.admin-org-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-org-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--n1200);
+  border: 1px solid var(--n1000);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.admin-org-card:hover {
+  border-color: var(--y400);
+  background: var(--n1100);
+}
+
+.org-card-name {
+  font-family: 'Chip Display', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.org-card-slug {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  color: var(--n700);
+  margin-top: 2px;
+}
+
+.org-card-right {
+  display: flex;
+  gap: 24px;
+  text-align: right;
+}
+
+.org-card-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--n600);
+}
+
+.org-card-label {
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--n800);
+}
+
+.admin-empty {
+  text-align: center;
+  padding: 48px;
+  color: var(--n700);
+}
+
+.admin-empty p {
+  margin-bottom: 16px;
+}
+
+/* ==== Results header actions ==== */
+
+.results-header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.results-action-btn {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n700);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.results-action-btn:hover,
+.results-action-btn.active {
+  border-color: var(--y400);
+  color: var(--y400);
+}
+
+.results-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==== Admin Panel ==== */
+
+.admin-panel {
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--n1000);
+  background: var(--n1200);
+}
+
+.admin-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-panel-section-title {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--n700);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+
+.share-create {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.share-select {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n500);
+  outline: none;
+}
+
+.share-create-btn {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--green);
+  border: none;
+  color: var(--n1300);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.share-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-item {
+  padding: 8px;
+  background: var(--n1100);
+  border-radius: 6px;
+  border: 1px solid var(--n1000);
+}
+
+.share-item-url {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n500);
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.share-copy-hint {
+  font-size: 9px;
+  color: var(--n800);
+  margin-left: 6px;
+}
+
+.share-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--n800);
+}
+
+.share-revoke {
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: none;
+  border: 1px solid var(--red);
+  color: var(--red);
+  cursor: pointer;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.export-btn {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  border-color: var(--y400);
+  color: var(--y400);
+}
+
+.annotation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.annotation-input {
+  font-family: 'Chip Text', system-ui, sans-serif;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n100);
+  resize: vertical;
+  outline: none;
+}
+
+.annotation-input:focus {
+  border-color: var(--y400);
+}
+
+.annotation-form-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.annotation-author-input {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--n1100);
+  border: 1px solid var(--n900);
+  color: var(--n500);
+  width: 100px;
+  outline: none;
+}
+
+.annotation-manage-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.annotation-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--n1100);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--n600);
+}
+
+.annotation-manage-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==== Annotations section (viewer) ==== */
+
+.annotations-section {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.annotations-title {
+  font-family: 'Chip Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--n700);
+  margin-bottom: 10px;
+}
+
+.annotations-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
+.annotation-card {
+  padding: 12px 14px;
+  background: var(--n1200);
+  border: 1px solid var(--n1000);
+  border-left: 3px solid var(--y400);
+  border-radius: 8px;
+}
+
+.annotation-text {
+  font-size: 13px;
+  color: var(--n500);
+  margin-bottom: 6px;
+}
+
+.annotation-meta {
+  display: flex;
+  gap: 8px;
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  color: var(--n800);
+}
+
+.annotation-target {
+  color: var(--green);
+}
+
+/* ==== Diff View ==== */
+
+.diff-view {
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--n1000);
+  background: var(--n1200);
+}
+
+.diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.diff-title {
+  font-family: 'Chip Display', system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.diff-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-label {
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n700);
+}
+
+.diff-empty {
+  font-size: 13px;
+  color: var(--n700);
+  padding: 12px 0;
+}
+
+.diff-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.diff-stat {
+  font-family: 'Chip Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.diff-stat.diff-added { color: var(--green); }
+.diff-stat.diff-removed { color: var(--red); }
+.diff-stat.diff-changed { color: var(--y400); }
+
+.diff-body {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.diff-section {
+  margin-bottom: 12px;
+}
+
+.diff-section-title {
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.diff-section-title.added { color: var(--green); }
+.diff-section-title.removed { color: var(--red); }
+.diff-section-title.changed { color: var(--y400); }
+
+.diff-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.diff-item.added { background: rgba(122, 219, 18, 0.05); border-left: 2px solid var(--green); }
+.diff-item.removed { background: rgba(201, 6, 81, 0.05); border-left: 2px solid var(--red); }
+.diff-item.changed { background: rgba(255, 230, 0, 0.05); border-left: 2px solid var(--y400); }
+
+.diff-item-badge {
+  font-family: 'Chip Mono', monospace;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--n1100);
+  color: var(--n700);
+  text-transform: uppercase;
+}
+
+.diff-item-label {
+  color: var(--n500);
+}
+
+.diff-item-detail {
+  margin-left: auto;
+  font-family: 'Chip Mono', monospace;
+  font-size: 10px;
+  color: var(--n700);
+}

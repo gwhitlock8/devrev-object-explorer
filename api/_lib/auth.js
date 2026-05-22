@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 export const COOKIE_NAME = 'devrev_session';
+export const ORG_COOKIE_PREFIX = 'devrev_org_';
 
 function getSecretKey() {
   const secret = process.env.JWT_SECRET;
@@ -8,20 +9,30 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function signSessionToken() {
-  return new SignJWT({ authenticated: true })
+// Master session (DevRev employee)
+export async function signSessionToken(payload = {}) {
+  return new SignJWT({ authenticated: true, role: 'admin', ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
     .sign(getSecretKey());
 }
 
+// Org-level session (customer or employee viewing specific org)
+export async function signOrgToken(slug) {
+  return new SignJWT({ authenticated: true, role: 'org', slug })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(getSecretKey());
+}
+
 export async function verifySessionToken(token) {
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
-    return payload?.authenticated === true;
+    return payload?.authenticated === true ? payload : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -43,9 +54,35 @@ export function getTokenFromRequest(req) {
   return null;
 }
 
+export function getOrgTokenFromRequest(req, slug) {
+  const cookieHeader = req.headers?.cookie || req.headers?.get?.('cookie') || '';
+  const cookies = parseCookies(cookieHeader);
+  return cookies[`${ORG_COOKIE_PREFIX}${slug}`] || null;
+}
+
+// Check if user has master (admin) session
 export async function isAuthenticated(req) {
   const token = getTokenFromRequest(req);
-  return token ? verifySessionToken(token) : false;
+  if (!token) return false;
+  const payload = await verifySessionToken(token);
+  return payload?.role === 'admin';
+}
+
+// Check if user has access to a specific org (either admin or org-level auth)
+export async function isOrgAuthenticated(req, slug) {
+  // Admin always has access
+  if (await isAuthenticated(req)) return true;
+  // Check org-specific token
+  const orgToken = getOrgTokenFromRequest(req, slug);
+  if (!orgToken) return false;
+  const payload = await verifySessionToken(orgToken);
+  return payload?.role === 'org' && payload?.slug === slug;
+}
+
+// Check if request has a valid share token
+export function getShareTokenFromRequest(req) {
+  const url = new URL(req.url, `http://${req.headers?.host || 'localhost'}`);
+  return url.searchParams.get('token') || null;
 }
 
 export function setSessionCookie(res, token) {
@@ -59,6 +96,27 @@ export function setSessionCookie(res, token) {
   ];
   if (secure) parts.push('Secure');
   res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+export function setOrgCookie(res, slug, token) {
+  const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const parts = [
+    `${ORG_COOKIE_PREFIX}${slug}=${token}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=86400',
+  ];
+  if (secure) parts.push('Secure');
+  // Append to existing Set-Cookie headers
+  const existing = res.getHeader('Set-Cookie');
+  if (existing) {
+    const cookies = Array.isArray(existing) ? existing : [existing];
+    cookies.push(parts.join('; '));
+    res.setHeader('Set-Cookie', cookies);
+  } else {
+    res.setHeader('Set-Cookie', parts.join('; '));
+  }
 }
 
 export function clearSessionCookie(res) {

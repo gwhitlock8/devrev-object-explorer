@@ -1,4 +1,4 @@
-import { isAuthenticated } from './_lib/auth.js';
+import { getTokenFromRequest, verifySessionToken } from './_lib/auth.js';
 import { json } from './_lib/handler.js';
 
 export default async function handler(req, res) {
@@ -6,5 +6,15 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed' });
   }
 
-  return json(res, 200, { authenticated: await isAuthenticated(req) });
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return json(res, 200, { authenticated: false });
+  }
+
+  const payload = await verifySessionToken(token);
+  if (!payload) {
+    return json(res, 200, { authenticated: false });
+  }
+
+  return json(res, 200, { authenticated: true, role: payload.role || 'admin' });
 }

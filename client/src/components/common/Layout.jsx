@@ -20,8 +20,8 @@ export default function Layout({ showNav = true }) {
           <NavLink to="/objects" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             Object Model
           </NavLink>
-          <NavLink to="/customer" className="nav-link customer">
-            Customer
+          <NavLink to="/admin" className={({ isActive }) => `nav-link customer ${isActive ? 'active' : ''}`}>
+            Admin
           </NavLink>
         </div>
       </nav>

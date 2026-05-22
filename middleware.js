@@ -1,32 +1,25 @@
-import { verifySessionToken, COOKIE_NAME, parseCookies } from './api/_lib/auth.js';
+import { verifySessionToken, COOKIE_NAME, ORG_COOKIE_PREFIX, parseCookies } from './api/_lib/auth.js';
 
 export const config = {
-  matcher: ['/customer/:path+', '/api/discover', '/api/customer/:path*'],
+  matcher: ['/api/discover', '/api/orgs', '/api/share', '/api/annotations'],
 };
 
+// Only protect admin-only API routes at the middleware level.
+// Org-level and share-token auth is handled inside individual route handlers
+// since they need access to the slug and DB.
 export default async function middleware(request) {
-  const { pathname } = new URL(request.url);
-
-  if (pathname === '/customer' || pathname === '/customer/') {
-    return;
-  }
-
   const cookies = parseCookies(request.headers.get('cookie') || '');
   const token = cookies[COOKIE_NAME];
-  const authenticated = token ? await verifySessionToken(token) : false;
+  const payload = token ? await verifySessionToken(token) : null;
+  const isAdmin = payload?.role === 'admin';
 
-  if (authenticated) {
-    return;
-  }
-
-  if (pathname.startsWith('/api/')) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+  if (!isAdmin) {
+    return new Response(JSON.stringify({ error: 'Admin authentication required' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const loginUrl = new URL('/customer', request.url);
-  loginUrl.searchParams.set('redirect', pathname);
-  return Response.redirect(loginUrl, 302);
+  // Admin is authenticated, proceed
+  return;
 }

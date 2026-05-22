@@ -6,12 +6,22 @@ let db;
 
 export async function getDb() {
   const uri = process.env.MONGODB_URI;
-  if (!uri) return null;
+  if (!uri) {
+    console.error('[DB] MONGODB_URI is not set');
+    return null;
+  }
 
   if (!client) {
-    client = new MongoClient(uri);
-    await client.connect();
-    db = client.db();
+    try {
+      client = new MongoClient(uri);
+      await client.connect();
+      db = client.db();
+    } catch (err) {
+      console.error('[DB] Connection failed:', err.message);
+      client = null;
+      db = null;
+      return null;
+    }
   }
   return db;
 }
@@ -71,7 +81,9 @@ export function decryptPat(stored) {
 
 export async function saveCustomerModel({ slug, orgName, orgId, model, password, pat }) {
   const database = await getDb();
-  if (!database) return null;
+  if (!database) {
+    throw new Error('Database connection unavailable. Check MONGODB_URI env var.');
+  }
 
   const now = new Date();
   const setFields = { orgName, orgId, model, lastRefreshed: now };
@@ -105,7 +117,10 @@ export async function getCustomerBySlug(slug) {
 
 export async function listCustomers() {
   const database = await getDb();
-  if (!database) return [];
+  if (!database) {
+    console.error('[DB] listCustomers: no database connection');
+    return [];
+  }
   return database.collection('customers')
     .find({}, { projection: { slug: 1, orgName: 1, orgId: 1, discoveredAt: 1, lastRefreshed: 1, _id: 0 } })
     .sort({ lastRefreshed: -1 })

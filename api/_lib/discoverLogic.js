@@ -49,7 +49,7 @@ export async function runDiscovery(pat) {
   const orgName = orgData.dev_org?.display_name || 'Unknown Org';
 
   // Phase 1: Fetch core objects
-  const [partsData, issuesData, ticketsData, accountsData, syncData, schemasData, articlesData, groupsData, opportunitiesData, conversationsData, contactsData, meetingsData, tagsData, sprintsData] =
+  const [partsData, issuesData, ticketsData, accountsData, syncData, schemasData, articlesData, groupsData, opportunitiesData, conversationsData, contactsData, meetingsData, tagsData, devUsersData] =
     await Promise.all([
       safeFetch(`${BASE}/parts.list`, headers, { limit: 100 }),
       safeFetch(`${BASE}/works.list`, headers, { limit: 50, type: ['issue'] }),
@@ -67,8 +67,15 @@ export async function runDiscovery(pat) {
       safeFetch(`${BASE}/dev-users.list`, headers, { limit: 30 }),
     ]);
 
-  // Phase 2: Try to fetch links for relationship discovery
-  const linksData = await safeFetch(`${BASE}/links.list`, headers, { limit: 100 });
+  // Phase 2: Additional data sources
+  const [linksData, vistasData, revOrgsData, slaPoliciesData, snapInsData] =
+    await Promise.all([
+      safeFetch(`${BASE}/links.list`, headers, { limit: 100 }),
+      safeFetch(`${BASE}/vistas.list`, headers, { limit: 30 }),
+      safeFetch(`${BASE}/rev-orgs.list`, headers, { limit: 30 }),
+      safeFetch(`${BASE}/sla-policies.list`, headers, { limit: 20 }),
+      safeFetch(`${BASE}/snap-ins.list`, headers, { limit: 30 }),
+    ]);
 
   const parts = partsData?.parts || [];
   const issues = issuesData?.works || [];
@@ -83,8 +90,12 @@ export async function runDiscovery(pat) {
   const contacts = contactsData?.rev_users || [];
   const meetings = meetingsData?.meetings || [];
   const tags = tagsData?.tags || [];
-  const devUsers = sprintsData?.dev_users || [];
+  const devUsers = devUsersData?.dev_users || [];
   const links = linksData?.links || [];
+  const vistas = vistasData?.vistas || [];
+  const revOrgs = revOrgsData?.rev_orgs || [];
+  const slaPolicies = slaPoliciesData?.sla_policies || [];
+  const snapIns = snapInsData?.snap_ins || [];
 
   const model = buildObjectModel({
     org: orgData.dev_org,
@@ -103,6 +114,10 @@ export async function runDiscovery(pat) {
     tags,
     devUsers,
     links,
+    vistas,
+    revOrgs,
+    slaPolicies,
+    snapIns,
   });
 
   return {
@@ -375,11 +390,101 @@ function buildObjectModel(data) {
 
   // --- Tags → applied objects ---
   (data.tags || []).forEach((tag) => {
-    // Tags have a name but we track their existence as a relationship pattern
     if (tag.name) {
       addRelationship('Tag', 'Issue', 'applied to', {
         from: { id: tag.id, label: tag.name },
         to: { id: 'various', label: 'work items' },
+      });
+    }
+  });
+
+  // --- Vistas → Space / Dev User ---
+  (data.vistas || []).forEach((vista) => {
+    if (vista.space) {
+      addRelationship('Vista', 'Space', 'belongs to', {
+        from: { id: vista.id, label: objLabel(vista) },
+        to: { id: vista.space.id || vista.space, label: objLabel(vista.space) },
+      });
+    }
+    if (vista.owned_by?.length) {
+      const owner = vista.owned_by[0];
+      addRelationship('Dev User', 'Vista', 'owns', {
+        from: { id: owner.id || owner, label: owner.display_name || objLabel(owner) },
+        to: { id: vista.id, label: objLabel(vista) },
+      });
+    }
+  });
+
+  // --- Rev Orgs → Account ---
+  (data.revOrgs || []).forEach((revOrg) => {
+    if (revOrg.account) {
+      const acctRef = revOrg.account;
+      addRelationship('Rev Org', 'Account', 'belongs to', {
+        from: { id: revOrg.id, label: objLabel(revOrg) },
+        to: { id: acctRef.id || acctRef, label: acctRef.display_name || objLabel(acctRef) },
+      });
+    }
+  });
+
+  // --- SLA Policies → Ticket types ---
+  (data.slaPolicies || []).forEach((sla) => {
+    addRelationship('SLA Policy', 'Ticket', 'governs', {
+      from: { id: sla.id, label: sla.name || objLabel(sla) },
+      to: { id: 'tickets', label: 'matching tickets' },
+    });
+    // SLA may reference parts
+    if (sla.applies_to_part) {
+      const partRef = sla.applies_to_part;
+      const partId = partRef.id || partRef;
+      const part = partMap.get(partId);
+      addRelationship('SLA Policy', part ? friendlyType(part.type) : 'Product', 'scoped to', {
+        from: { id: sla.id, label: sla.name || objLabel(sla) },
+        to: { id: partId, label: objLabel(part || { id: partId }) },
+      });
+    }
+  });
+
+  // --- Snap-ins (Automations) → various objects ---
+  (data.snapIns || []).forEach((snapIn) => {
+    const name = snapIn.name || snapIn.display_name || objLabel(snapIn);
+    // Snap-ins connect external systems to internal actions
+    if (snapIn.snap_in_version?.spec?.commands?.length) {
+      addRelationship('Automation', 'Issue', 'acts on', {
+        from: { id: snapIn.id, label: name },
+        to: { id: 'work items', label: 'triggered actions' },
+      });
+    }
+    // General automation presence
+    addRelationship('Automation', 'Sync Unit', 'integrates via', {
+      from: { id: snapIn.id, label: name },
+      to: { id: 'system', label: snapIn.status || 'active' },
+    });
+  });
+
+  // --- Pipeline stage enrichment (from opportunities) ---
+  const stageDistribution = new Map();
+  (data.opportunities || []).forEach((opp) => {
+    const stage = opp.stage?.name || opp.stage || opp.state;
+    if (stage) {
+      stageDistribution.set(stage, (stageDistribution.get(stage) || 0) + 1);
+    }
+  });
+
+  // --- Custom fields extraction ---
+  const customFieldsByType = new Map();
+  const sampleObjects = [
+    ...data.issues.slice(0, 3).map((o) => ({ ...o, _type: 'Issue' })),
+    ...data.tickets.slice(0, 3).map((o) => ({ ...o, _type: 'Ticket' })),
+    ...data.opportunities.slice(0, 3).map((o) => ({ ...o, _type: 'Opportunity' })),
+    ...data.accounts.slice(0, 3).map((o) => ({ ...o, _type: 'Account' })),
+  ];
+  sampleObjects.forEach((obj) => {
+    const type = obj._type;
+    if (!customFieldsByType.has(type)) customFieldsByType.set(type, new Set());
+    const customs = obj.custom_fields || obj.custom_schema_fragments;
+    if (customs && typeof customs === 'object') {
+      Object.keys(customs).forEach((key) => {
+        customFieldsByType.get(type).add(key);
       });
     }
   });
@@ -580,6 +685,100 @@ function buildObjectModel(data) {
     });
   }
 
+  if (data.vistas?.length) {
+    categories.push({
+      id: 'vistas',
+      label: 'Views & Boards',
+      color: '#5996FF',
+      objects: data.vistas.slice(0, 10).map((v) => ({
+        id: v.id,
+        name: v.name || v.display_id || v.id,
+        type: 'Vista',
+        desc: v.type || '',
+      })),
+    });
+  }
+
+  if (data.revOrgs?.length) {
+    categories.push({
+      id: 'revorgs',
+      label: 'Customer Organizations',
+      color: '#8854F6',
+      objects: data.revOrgs.slice(0, 15).map((r) => ({
+        id: r.id,
+        name: r.display_name || r.display_id || r.id,
+        type: 'Rev Org',
+        desc: r.account?.display_name || '',
+      })),
+    });
+  }
+
+  if (data.slaPolicies?.length) {
+    categories.push({
+      id: 'sla',
+      label: 'SLA Policies',
+      color: '#F35106',
+      objects: data.slaPolicies.slice(0, 10).map((s) => ({
+        id: s.id,
+        name: s.name || s.display_id || s.id,
+        type: 'SLA Policy',
+        desc: s.description || '',
+      })),
+    });
+  }
+
+  if (data.snapIns?.length) {
+    categories.push({
+      id: 'automations',
+      label: 'Automations & Snap-ins',
+      color: '#FF93AC',
+      objects: data.snapIns.slice(0, 10).map((s) => ({
+        id: s.id,
+        name: s.name || s.display_name || s.display_id || s.id,
+        type: 'Automation',
+        desc: s.status || '',
+      })),
+    });
+  }
+
+  // Pipeline stage distribution (enrichment for opportunities)
+  if (stageDistribution.size > 0) {
+    categories.push({
+      id: 'pipeline',
+      label: 'Pipeline Stages',
+      color: '#F35106',
+      objects: [...stageDistribution.entries()].map(([stage, count]) => ({
+        id: `stage-${stage}`,
+        name: stage,
+        type: 'Stage',
+        desc: `${count} deal${count > 1 ? 's' : ''}`,
+      })),
+    });
+  }
+
+  // Custom fields per object type
+  if (customFieldsByType.size > 0) {
+    const cfObjects = [];
+    customFieldsByType.forEach((fields, type) => {
+      if (fields.size > 0) {
+        cfObjects.push({
+          id: `cf-${type}`,
+          name: type,
+          type: 'Custom Fields',
+          desc: `${fields.size} field${fields.size > 1 ? 's' : ''}: ${[...fields].slice(0, 4).join(', ')}${fields.size > 4 ? '...' : ''}`,
+        });
+      }
+    });
+    if (cfObjects.length > 0) {
+      categories.push({
+        id: 'customfields',
+        label: 'Custom Fields',
+        color: '#FFAD76',
+        objects: cfObjects,
+      });
+    }
+  }
+
   // Convert the relationship map to an array
   const relationships = [...typeRelationships.values()];
 
@@ -595,6 +794,12 @@ function buildObjectModel(data) {
     totalMeetings: data.meetings?.length || 0,
     totalTags: data.tags?.length || 0,
     totalDevUsers: data.devUsers?.length || 0,
+    totalVistas: data.vistas?.length || 0,
+    totalRevOrgs: data.revOrgs?.length || 0,
+    totalSlaPolicies: data.slaPolicies?.length || 0,
+    totalAutomations: data.snapIns?.length || 0,
+    pipelineStages: stageDistribution.size,
+    customFieldTypes: customFieldsByType.size,
     hasIssues: data.issues.length > 0,
     hasTickets: data.tickets.length > 0,
   };

@@ -131,6 +131,35 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 .arch-tagline{text-align:center;margin-top:32px;font-size:16px;color:var(--n600);max-width:700px}
 .arch-tagline strong{color:var(--y400)}
 
+/* ─── SLIDE 6: Order of Operations ─── */
+.oo-container{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:0}
+.oo-row{display:flex;align-items:center;gap:20px;padding:24px 0}
+.oo-row-label{font-family:'Chip Mono',monospace;font-size:12px;color:var(--n600);width:100px;flex-shrink:0;line-height:1.4}
+.oo-flow{display:flex;align-items:center;gap:10px;flex:1}
+.oo-step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:110px;padding:12px 10px;border-radius:12px;text-align:center}
+.oo-step-gray{background:var(--n1100);border:1px solid var(--n900)}
+.oo-step-green{background:rgba(122,219,18,0.06);border:1px solid rgba(122,219,18,0.25)}
+.oo-step-icon{font-size:22px;margin-bottom:2px}
+.oo-step-title{font-family:'Chip Display',system-ui,sans-serif;font-size:12px;font-weight:700;color:var(--n100)}
+.oo-step-desc{font-size:10px;color:var(--n700);line-height:1.3}
+.oo-arrow{font-size:16px;color:var(--n700);flex-shrink:0}
+.oo-arrow-bidir{color:var(--n600)}
+.oo-accuracy{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px;flex-shrink:0;padding:12px;border-radius:12px}
+.oo-accuracy-bad{background:rgba(201,6,81,0.06);border:1px solid rgba(201,6,81,0.2)}
+.oo-accuracy-good{background:rgba(122,219,18,0.06);border:1px solid rgba(122,219,18,0.25)}
+.oo-accuracy-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.oo-accuracy-bad .oo-accuracy-icon{background:rgba(201,6,81,0.15);color:var(--red)}
+.oo-accuracy-good .oo-accuracy-icon{background:rgba(122,219,18,0.15);color:var(--green)}
+.oo-accuracy-label{font-family:'Chip Mono',monospace;font-size:9px;color:var(--n700);text-transform:uppercase}
+.oo-accuracy-num{font-family:'Chip Display',system-ui,sans-serif;font-size:18px;font-weight:700}
+.oo-accuracy-bad .oo-accuracy-num{color:var(--red)}
+.oo-accuracy-good .oo-accuracy-num{color:var(--green)}
+.oo-accuracy-source{font-family:'Chip Mono',monospace;font-size:8px;color:var(--n800)}
+.oo-divider{width:100%;height:1px;background:var(--n1000);margin:4px 0}
+.oo-insight{text-align:center;margin-top:24px;font-size:13px;color:var(--n600);max-width:700px;margin-left:auto;margin-right:auto;line-height:1.5}
+.oo-insight strong{color:var(--n100)}
+.oo-insight-sub{display:block;margin-top:4px;font-size:11px;color:var(--n800)}
+
 @media(max-width:900px){
   .slide{padding:40px 24px}
   .title{font-size:32px}
@@ -139,6 +168,9 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
   .arch-flow{flex-wrap:wrap;justify-content:center}
   .flow-container{flex-direction:column}
   .flow-stores{grid-template-columns:1fr}
+  .oo-row{flex-direction:column;align-items:flex-start;gap:12px}
+  .oo-flow{flex-wrap:wrap;gap:6px}
+  .oo-step{min-width:80px;padding:8px}
 }
 </style>
 </head>
@@ -325,12 +357,101 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 <div class="arch-tagline"><strong>DevRev assembles enterprise context before AI inference begins.</strong><br><span style="font-size:13px;color:var(--n800)">Pre-computed context means the AI already knows the business before you ask.</span></div>
 </div>
 
+<!-- SLIDE 6: Order of Operations -->
+<div class="slide" data-slide="5">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Why It Matters</span></div>
+<div class="eyebrow">Architecture Comparison</div>
+<h1 class="title">Order of Operations Matter</h1>
+<p class="subtitle">Unified data architecture vs. fetch-based guessing loop</p>
+
+<div class="oo-container">
+  <!-- Federated/MCP Row -->
+  <div class="oo-row">
+    <div class="oo-row-label">Federated / MCP<br>Approach</div>
+    <div class="oo-flow">
+      <div class="oo-step oo-step-gray">
+        <div class="oo-step-icon">👤</div>
+        <div class="oo-step-title">Prompt</div>
+        <div class="oo-step-desc">User question</div>
+      </div>
+      <div class="oo-arrow oo-arrow-bidir">⇄</div>
+      <div class="oo-step oo-step-gray">
+        <div class="oo-step-icon">🧠</div>
+        <div class="oo-step-title">LLM Decides</div>
+        <div class="oo-step-desc">What data to fetch</div>
+      </div>
+      <div class="oo-arrow oo-arrow-bidir">⇄</div>
+      <div class="oo-step oo-step-gray">
+        <div class="oo-step-icon">🗄️</div>
+        <div class="oo-step-title">API / MCP Calls</div>
+        <div class="oo-step-desc">Fetch from SORs</div>
+      </div>
+      <div class="oo-arrow">→</div>
+      <div class="oo-step oo-step-gray">
+        <div class="oo-step-icon">🧠</div>
+        <div class="oo-step-title">LLM Summarizes</div>
+        <div class="oo-step-desc">With partial data</div>
+      </div>
+    </div>
+    <div class="oo-accuracy oo-accuracy-bad">
+      <div class="oo-accuracy-icon">?</div>
+      <div class="oo-accuracy-label">Accuracy</div>
+      <div class="oo-accuracy-num">&lt;65%</div>
+      <div class="oo-accuracy-source">CData Benchmark, 2025</div>
+    </div>
+  </div>
+
+  <div class="oo-divider"></div>
+
+  <!-- Computer by DevRev Row -->
+  <div class="oo-row">
+    <div class="oo-row-label">Computer by<br>DevRev</div>
+    <div class="oo-flow">
+      <div class="oo-step oo-step-green">
+        <div class="oo-step-icon">👤</div>
+        <div class="oo-step-title">Prompt</div>
+        <div class="oo-step-desc">User question</div>
+      </div>
+      <div class="oo-arrow">→</div>
+      <div class="oo-step oo-step-green">
+        <div class="oo-step-icon">🧩</div>
+        <div class="oo-step-title">Shared Memory</div>
+        <div class="oo-step-desc">Composed data, relevant to prompt</div>
+      </div>
+      <div class="oo-arrow">→</div>
+      <div class="oo-step oo-step-green">
+        <div class="oo-step-icon">⚙️</div>
+        <div class="oo-step-title">Context Assembled</div>
+        <div class="oo-step-desc">Role, permissions, full record</div>
+      </div>
+      <div class="oo-arrow">→</div>
+      <div class="oo-step oo-step-green">
+        <div class="oo-step-icon">🧠</div>
+        <div class="oo-step-title">LLM Answers</div>
+        <div class="oo-step-desc">Complete context</div>
+      </div>
+    </div>
+    <div class="oo-accuracy oo-accuracy-good">
+      <div class="oo-accuracy-icon">✓</div>
+      <div class="oo-accuracy-label">Accuracy</div>
+      <div class="oo-accuracy-num">95%</div>
+      <div class="oo-accuracy-source">DevRev, BusinessWire 2024</div>
+    </div>
+  </div>
+</div>
+
+<div class="oo-insight">
+  <strong>The compound error problem:</strong> At 75% accuracy per step, a 5-step workflow succeeds only 23.7% of the time.
+  <span class="oo-insight-sub">DevRev eliminates runtime data assembly entirely — no compounding.</span>
+</div>
+</div>
+
 </div>
 
 <!-- Navigation -->
 <div class="nav-dots" id="nav-dots"></div>
-<div class="slide-num" id="slide-num">1 / 5</div>
-<div class="nav-hint">← → to navigate</div>
+<div class="slide-num" id="slide-num">1 / 6</div>
+<div class="nav-hint">← → navigate · P presenter notes</div>
 
 <script>
 const slides=document.querySelectorAll('.slide');
@@ -366,16 +487,151 @@ updateNav();
 function updateNav(){
 document.getElementById('slide-num').textContent=`${current+1} / ${totalSlides}`;
 document.querySelectorAll('.nav-dot').forEach((d,i)=>{d.classList.toggle('active',i===current);});
+updatePresenterNotes();
 }
 
 // Build dots
 const dotsEl=document.getElementById('nav-dots');
 for(let i=0;i<totalSlides;i++){const d=document.createElement('div');d.className='nav-dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
 
+// Speaker notes data
+const speakerNotes=[
+  {
+    title:'The DevRev Object Model',
+    notes:`This is the foundation everything else rests on. 45 objects across 12 categories, connected by 92 relationships.
+
+Key talking points:
+• "This isn't a database schema — it's a unified representation of how your entire business works."
+• Point out the breadth: People, Product, Work, Sales, Support, Planning — all in one graph.
+• "Every other platform gives you silos. Salesforce knows your deals, Jira knows your bugs, Zendesk knows your tickets. None of them know how those connect. We do."
+• The 92 relationships are the differentiator — it's not just storing objects, it's knowing that this ticket relates to this feature which belongs to this product which is sold via this opportunity.
+
+Delivery: Let them absorb the visual. Don't rush to explain every object. Let the scale speak.`
+  },
+  {
+    title:'Bidirectional Data Ingestion (AirSync)',
+    notes:`AirSync is patented technology. Emphasize the "bidirectional" — this isn't a one-way dump.
+
+Key talking points:
+• "Most integrations are read-only scrapers. AirSync reads AND writes. Changes flow both directions."
+• Walk the flow left-to-right: External systems → AirSync (connect, extract, transform, load) → Shared Memory.
+• "Permission-aware" is critical — when we sync your Salesforce, we don't flatten permissions. Your rep still only sees their deals.
+• Near-real-time means hourly default, configurable. Not batch overnight.
+• "Lossless transformation" — we don't lose context. A Jira epic with 15 custom fields keeps all 15.
+
+Delivery: This is where technical buyers get excited. If they ask "how do you handle schema drift?" — say "subtypes and 1:1 mapping." If they ask about scale — we handle millions of objects per sync unit.`
+  },
+  {
+    title:'8 Datastores (Memory)',
+    notes:`This is the "how is this different from a vector DB + RAG?" answer.
+
+Key talking points:
+• "Everyone else has one database and bolts AI on top. We have eight purpose-built stores."
+• Click through each card — each solves a different query pattern:
+  - Context Registry: "The AI knows what fields mean, not just their values"
+  - Permissions Store: "Data leakage is architecturally impossible — every query checks permissions"
+  - Time Series: "We can answer 'what changed last week' because we store the deltas"
+• "This is why we can answer questions that stumble every other AI tool. It's not a smarter model — it's better-organized data."
+
+Delivery: The audience probably hasn't thought about WHY you'd need 8 stores. Make it concrete: "If I ask 'show me deals that are at risk' — I need relational data (the deal), time series (is it stalling?), graph (who's the champion?), and permissions (can I see it?). That's 4 stores in one question. Nobody else can do that in one call."
+
+Pause after "architecturally impossible" on the Permissions Store — that's a strong claim that builds trust.`
+  },
+  {
+    title:'How Objects Flow Into Memory',
+    notes:`This slide makes the 8-store architecture concrete with a live demo.
+
+Key talking points:
+• Click through each object type — show how the same object lands in different stores with different roles.
+• "One ingestion event. Eight destinations. No additional integration work."
+• For Opportunity: "The relational DB stores the ACV. The graph stores who the champion is. The time series tracks stage changes. The vector DB lets you semantically search for 'deals going sideways' even if nobody tagged them as at-risk."
+• For Ticket: "This is why our support AI resolves 85% of tickets — it doesn't just keyword-match your KB, it understands the customer's history, entitlements, and similar past resolutions."
+
+Delivery: This is a good interactive moment. Ask the audience "what object type matters most to you?" and click that one. Makes it feel personalized.`
+  },
+  {
+    title:'The Complete Picture',
+    notes:`Bring it all together. Left to right: external systems → AirSync → Object Model → Memory → Services → Computer.
+
+Key talking points:
+• "This is the full pipeline. External systems on the left, trusted AI answers on the right."
+• Hover over sections to highlight them — show the audience the end-to-end flow.
+• "The key insight: DevRev assembles enterprise context BEFORE AI inference begins. The LLM never has to guess what data it needs — it's already there."
+• "This is why other approaches cap out at 65% accuracy and we hit 95%. It's not a better model — it's a better architecture."
+
+Delivery: This is your bridge to the next slide. After explaining the pipeline, say: "Let me show you what this means compared to every other approach on the market." Then advance.`
+  },
+  {
+    title:'Architecture & Order of Operations',
+    notes:`This is the "money slide." The comparison that makes the architectural advantage visceral.
+
+Key talking points:
+• TOP ROW (Federated/MCP): "A prompt comes in. The LLM decides what data to fetch. It makes API or MCP calls to your systems of record. Then it summarizes whatever it got back. This is a fetch-based guessing loop. The LLM is doing double duty — retrieval AND summarization — and it wasn't built for the first job."
+• Point at the bidirectional arrows: "See these back-and-forth arrows? Each one is a failure point. Each call has maybe 75% accuracy. Compound that across 5 steps and you're at 23.7% success."
+• The <65% stat: "The result? Less than 65% accuracy. On your enterprise data. On the questions that drive real decisions." — Let it breathe.
+• BOTTOM ROW (Computer): "Now look at DevRev. Same prompt. But the data is already composed in shared memory. Context is assembled with role and permissions. The LLM only does what it's good at — answering with complete context."
+• The arrows are all one-directional: "No guessing loops. No back-and-forth. One pass, one answer."
+• 95% accuracy: "This is published. BusinessWire, October 2024."
+• Compound error callout at the bottom: "At 75% per step, 5 steps = 23.7% success. We eliminate compounding entirely because there's nothing to compound."
+
+Delivery: Say "guessing loop" like it's a diagnosis, not an insult. You're naming the architecture, not attacking the buyer's prior choices. The <65% stat is a gut punch — let it breathe for a beat before moving on. Then the bottom row should feel like relief: "There's a better way."`
+  }
+];
+
+// Presenter notes window
+let presenterWindow=null;
+function openPresenterNotes(){
+  if(presenterWindow&&!presenterWindow.closed){presenterWindow.focus();updatePresenterNotes();return;}
+  presenterWindow=window.open('','presenter_notes','width=500,height=700,left=100,top=100');
+  const doc=presenterWindow.document;
+  doc.write(`<!DOCTYPE html><html><head><title>Speaker Notes</title><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,system-ui,sans-serif;background:#1a1a1a;color:#e0e0e0;padding:24px;overflow-y:auto}
+    .pn-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #333}
+    .pn-title{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#888}
+    .pn-slide-num{font-size:13px;color:#ffe600;font-weight:700}
+    .pn-slide-title{font-size:20px;font-weight:700;margin-bottom:16px;color:#fff}
+    .pn-notes{font-size:14px;line-height:1.7;color:#ccc;white-space:pre-wrap}
+    .pn-nav{display:flex;gap:8px;margin-top:20px;padding-top:12px;border-top:1px solid #333}
+    .pn-nav button{padding:8px 16px;border-radius:6px;border:1px solid #444;background:#222;color:#ccc;cursor:pointer;font-size:12px}
+    .pn-nav button:hover{border-color:#ffe600;color:#ffe600}
+    .pn-timer{font-size:12px;color:#666;margin-top:12px}
+  </style></head><body>
+    <div class="pn-header"><span class="pn-title">Speaker Notes</span><span class="pn-slide-num" id="pn-num"></span></div>
+    <div class="pn-slide-title" id="pn-title"></div>
+    <div class="pn-notes" id="pn-notes"></div>
+    <div class="pn-nav"><button onclick="window.opener.goTo(window.opener.current-1)">← Prev</button><button onclick="window.opener.goTo(window.opener.current+1)">Next →</button></div>
+    <div class="pn-timer" id="pn-timer"></div>
+  </body></html>`);
+  doc.close();
+  updatePresenterNotes();
+  // Start timer
+  const startTime=Date.now();
+  setInterval(()=>{
+    if(presenterWindow&&!presenterWindow.closed){
+      const elapsed=Math.floor((Date.now()-startTime)/1000);
+      const min=Math.floor(elapsed/60).toString().padStart(2,'0');
+      const sec=(elapsed%60).toString().padStart(2,'0');
+      try{presenterWindow.document.getElementById('pn-timer').textContent=`Elapsed: ${min}:${sec}`;}catch{}
+    }
+  },1000);
+}
+
+function updatePresenterNotes(){
+  if(!presenterWindow||presenterWindow.closed)return;
+  const note=speakerNotes[current]||{title:'',notes:''};
+  try{
+    presenterWindow.document.getElementById('pn-num').textContent=`Slide ${current+1} / ${totalSlides}`;
+    presenterWindow.document.getElementById('pn-title').textContent=note.title;
+    presenterWindow.document.getElementById('pn-notes').textContent=note.notes;
+  }catch{}
+}
+
 // Keyboard nav
 document.addEventListener('keydown',e=>{
 if(e.key==='ArrowRight'||e.key===' ')goTo(current+1);
 if(e.key==='ArrowLeft')goTo(current-1);
+if(e.key==='p'||e.key==='P')openPresenterNotes();
 });
 
 // Slide 3: Memory cards expand

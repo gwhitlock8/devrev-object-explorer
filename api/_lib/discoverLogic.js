@@ -49,7 +49,7 @@ export async function runDiscovery(pat) {
   const orgName = orgData.dev_org?.display_name || 'Unknown Org';
 
   // Phase 1: Fetch core objects
-  const [partsData, issuesData, ticketsData, accountsData, syncData, schemasData, articlesData, groupsData, opportunitiesData, conversationsData] =
+  const [partsData, issuesData, ticketsData, accountsData, syncData, schemasData, articlesData, groupsData, opportunitiesData, conversationsData, contactsData, meetingsData, tagsData, sprintsData] =
     await Promise.all([
       safeFetch(`${BASE}/parts.list`, headers, { limit: 100 }),
       safeFetch(`${BASE}/works.list`, headers, { limit: 50, type: ['issue'] }),
@@ -61,6 +61,10 @@ export async function runDiscovery(pat) {
       safeFetch(`${BASE}/groups.list`, headers, { limit: 50 }),
       safeFetch(`${BASE}/works.list`, headers, { limit: 30, type: ['opportunity'] }),
       safeFetch(`${BASE}/conversations.list`, headers, { limit: 20 }),
+      safeFetch(`${BASE}/rev-users.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/meetings.list`, headers, { limit: 30 }),
+      safeFetch(`${BASE}/tags.list`, headers, { limit: 50 }),
+      safeFetch(`${BASE}/dev-users.list`, headers, { limit: 30 }),
     ]);
 
   // Phase 2: Try to fetch links for relationship discovery
@@ -76,6 +80,10 @@ export async function runDiscovery(pat) {
   const groups = groupsData?.groups || [];
   const opportunities = opportunitiesData?.works || [];
   const conversations = conversationsData?.conversations || [];
+  const contacts = contactsData?.rev_users || [];
+  const meetings = meetingsData?.meetings || [];
+  const tags = tagsData?.tags || [];
+  const devUsers = sprintsData?.dev_users || [];
   const links = linksData?.links || [];
 
   const model = buildObjectModel({
@@ -90,6 +98,10 @@ export async function runDiscovery(pat) {
     groups,
     opportunities,
     conversations,
+    contacts,
+    meetings,
+    tags,
+    devUsers,
     links,
   });
 
@@ -324,6 +336,54 @@ function buildObjectModel(data) {
     }
   });
 
+  // --- Contacts → Account ---
+  (data.contacts || []).forEach((contact) => {
+    const acctRef = contact.rev_org?.account || contact.account;
+    if (acctRef) {
+      const acctId = acctRef.id || acctRef;
+      addRelationship('Contact', 'Account', 'associated with', {
+        from: { id: contact.id, label: objLabel(contact) },
+        to: { id: acctId, label: acctRef.display_name || acctId.split('/').pop() },
+      });
+    }
+  });
+
+  // --- Meetings → Opportunity / Account / Contact ---
+  (data.meetings || []).forEach((meeting) => {
+    if (meeting.opportunity) {
+      const oppRef = meeting.opportunity;
+      addRelationship('Meeting', 'Opportunity', 'related to', {
+        from: { id: meeting.id, label: objLabel(meeting) },
+        to: { id: oppRef.id || oppRef, label: objLabel(oppRef) },
+      });
+    }
+    if (meeting.account) {
+      const acctRef = meeting.account;
+      addRelationship('Meeting', 'Account', 'scheduled for', {
+        from: { id: meeting.id, label: objLabel(meeting) },
+        to: { id: acctRef.id || acctRef, label: acctRef.display_name || objLabel(acctRef) },
+      });
+    }
+    if (meeting.members?.length) {
+      const member = meeting.members[0];
+      addRelationship('Meeting', 'Contact', 'involves', {
+        from: { id: meeting.id, label: objLabel(meeting) },
+        to: { id: member.id || member, label: member.display_name || objLabel(member) },
+      });
+    }
+  });
+
+  // --- Tags → applied objects ---
+  (data.tags || []).forEach((tag) => {
+    // Tags have a name but we track their existence as a relationship pattern
+    if (tag.name) {
+      addRelationship('Tag', 'Issue', 'applied to', {
+        from: { id: tag.id, label: tag.name },
+        to: { id: 'various', label: 'work items' },
+      });
+    }
+  });
+
   // ------------------------------------------------------------------
   // Build categories (for the inventory cards below the graph)
   // ------------------------------------------------------------------
@@ -464,6 +524,62 @@ function buildObjectModel(data) {
     });
   }
 
+  if (data.contacts?.length) {
+    categories.push({
+      id: 'contacts',
+      label: 'Contacts',
+      color: '#8854F6',
+      objects: data.contacts.slice(0, 15).map((c) => ({
+        id: c.id,
+        name: c.display_name || c.full_name || c.display_id || c.id,
+        type: 'Contact',
+        desc: c.email || c.rev_org?.display_name || '',
+      })),
+    });
+  }
+
+  if (data.meetings?.length) {
+    categories.push({
+      id: 'meetings',
+      label: 'Meetings',
+      color: '#F35106',
+      objects: data.meetings.slice(0, 10).map((m) => ({
+        id: m.id,
+        name: m.title || m.display_id || m.id,
+        type: 'Meeting',
+        desc: m.scheduled_date ? new Date(m.scheduled_date).toLocaleDateString() : '',
+      })),
+    });
+  }
+
+  if (data.tags?.length) {
+    categories.push({
+      id: 'tags',
+      label: 'Tags',
+      color: '#FFE600',
+      objects: data.tags.slice(0, 15).map((t) => ({
+        id: t.id,
+        name: t.name || t.display_id || t.id,
+        type: 'Tag',
+        desc: t.description || '',
+      })),
+    });
+  }
+
+  if (data.devUsers?.length) {
+    categories.push({
+      id: 'devusers',
+      label: 'Dev Users',
+      color: '#5996FF',
+      objects: data.devUsers.slice(0, 10).map((u) => ({
+        id: u.id,
+        name: u.display_name || u.full_name || u.display_id || u.id,
+        type: 'Dev User',
+        desc: u.email || '',
+      })),
+    });
+  }
+
   // Convert the relationship map to an array
   const relationships = [...typeRelationships.values()];
 
@@ -475,6 +591,10 @@ function buildObjectModel(data) {
     totalGroups: data.groups.length,
     totalOpportunities: data.opportunities.length,
     totalConversations: data.conversations.length,
+    totalContacts: data.contacts?.length || 0,
+    totalMeetings: data.meetings?.length || 0,
+    totalTags: data.tags?.length || 0,
+    totalDevUsers: data.devUsers?.length || 0,
     hasIssues: data.issues.length > 0,
     hasTickets: data.tickets.length > 0,
   };

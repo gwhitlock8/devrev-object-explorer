@@ -859,11 +859,11 @@ Delivery: Say "guessing loop" like it's a diagnosis, not an insult. You're namin
     notes:`This slide answers the question: "OK, you have all this data — but how does AI actually DO things?"
 
 Key talking points:
-• Walk bottom-to-top through the 4 layers:
-  1. SNAP-INS: "At the bottom, it's full code. Docker containers, any language. This is where the actual work happens — calling an API, provisioning access, sending a notification. 15-minute runtime, built-in OAuth and secret management."
-  2. WORKFLOWS: "Wrap those code blocks into a visual builder. Triggers, branches, parallel paths, loops. Less technical people can compose complex automations. AND — this is key — you can drop AI nodes in between the deterministic steps."
+• Walk top-to-bottom through the 4 layers:
+  1. SNAP-INS (top): "At the top, it starts with full code. Docker containers, any language. This is where the actual work happens — calling an API, provisioning access, sending a notification. 15-minute runtime, built-in OAuth and secret management."
+  2. WORKFLOWS: "Those code blocks get wrapped into a visual builder. Triggers, branches, parallel paths, loops. Less technical people can compose complex automations. AND — this is key — you can drop AI nodes in between the deterministic steps."
   3. SKILLS: "Package a workflow with a natural language description. Now an AI agent can invoke it just from understanding what the user is asking for."
-  4. AI AGENTS: "The conversational layer. CX Agent handles customer questions, Dev Agent helps engineers, Product Agent surfaces insights. They GUIDE — but the ACTIONS run through the deterministic layers below."
+  4. AI AGENTS (bottom): "The conversational layer. CX Agent handles customer questions, Dev Agent helps engineers, Product Agent surfaces insights. They GUIDE — but the ACTIONS run through the deterministic layers above."
 
 The critical differentiator (emphasize this):
 • "AI provides guidance and deflection. But final actions run deterministically."
@@ -876,7 +876,7 @@ On the Apps section:
 On the Marketplace:
 • "You can package snap-ins and skills for the marketplace. Build once, distribute to other DevRev customers."
 
-Delivery: The 4-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the bottom guarantees outcomes. AI at the top understands intent. The two layers in between — workflows and skills — connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
+Delivery: The 4-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the top guarantees outcomes. AI at the bottom understands intent. The two layers in between — workflows and skills — connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
   }
 ];
 // Additional speaker notes for new slides

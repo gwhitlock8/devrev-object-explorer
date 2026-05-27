@@ -188,6 +188,10 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 
 .wf-security{text-align:center;margin-top:18px;padding:10px 16px;border-radius:8px;background:rgba(255,230,0,0.04);border:1px solid rgba(255,230,0,0.15);font-size:11px;color:var(--n600);max-width:600px;margin-left:auto;margin-right:auto}
 .wf-security strong{color:var(--y400)}
+.wf-layer.wf-expanded{transform:scale(1.02)}
+.wf-layer.wf-expanded .wf-layer-desc{color:var(--n500)}
+.wf-layer.wf-trace{box-shadow:0 0 12px rgba(122,219,18,0.15);border-color:var(--green)!important}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
 @media(max-width:900px){
   .slide{padding:40px 24px}
@@ -482,7 +486,7 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 <div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Execution</span></div>
 <div class="eyebrow">How AI Acts</div>
 <h1 class="title">From Data to Action</h1>
-<p class="subtitle">A 3-layer execution stack where AI guides decisions but deterministic workflows guarantee outcomes</p>
+<p class="subtitle">A 4-layer execution stack where AI guides decisions but deterministic workflows guarantee outcomes</p>
 
 <div class="wf-stack">
   <!-- Layer 1: Snap-ins (bottom) -->
@@ -587,9 +591,17 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 <div class="nav-hint">← → navigate · P presenter notes</div>
 
 <script>
-const slides=document.querySelectorAll('.slide');
-const totalSlides=slides.length;
+const allSlides=document.querySelectorAll('.slide');
+// Slide presentation order (maps display position → DOM index)
+// New order: Order of Ops(5), Object Model(0), AirSync(1), Memory(2), Data Flow(3), Complete(4), Workflow(6)
+const slideOrder=[5,0,1,2,3,4,6];
+const totalSlides=slideOrder.length;
+const slides=slideOrder.map(i=>allSlides[i]);
 let current=0;
+
+// Initialize: hide all, show first in order
+allSlides.forEach(s=>{s.classList.remove('active');s.style.opacity='0';s.style.transform='translateX(100%)';s.style.pointerEvents='none';});
+slides[0].classList.add('active');slides[0].style.opacity='1';slides[0].style.transform='translateX(0)';slides[0].style.pointerEvents='all';
 
 function goTo(n){
 if(n<0||n>=totalSlides||n===current)return;
@@ -615,6 +627,8 @@ slides[n].style.pointerEvents='all';
 slides[n].classList.add('active');
 current=n;
 updateNav();
+// Trigger workflow slide animation when it becomes active
+if(slideOrder[n]===6)animateWorkflowSlide();
 }
 
 function updateNav(){
@@ -627,8 +641,8 @@ updatePresenterNotes();
 const dotsEl=document.getElementById('nav-dots');
 for(let i=0;i<totalSlides;i++){const d=document.createElement('div');d.className='nav-dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
 
-// Speaker notes data
-const speakerNotes=[
+// Speaker notes data - ordered to match slideOrder: [OoO, Object Model, AirSync, Memory, Data Flow, Complete, Workflow]
+const speakerNotesRaw=[
   {
     title:'The DevRev Object Model',
     notes:`This is the foundation everything else rests on. 45 objects across 12 categories, connected by 92 relationships.
@@ -749,9 +763,11 @@ On the Apps section:
 On the Marketplace:
 • "You can package snap-ins and skills for the marketplace. Build once, distribute to other DevRev customers."
 
-Delivery: The 3-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the bottom guarantees outcomes. AI at the top understands intent. The layers in between connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
+Delivery: The 4-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the bottom guarantees outcomes. AI at the top understands intent. The two layers in between — workflows and skills — connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
   }
 ];
+// Reorder speaker notes to match slideOrder: [OoO(5), ObjModel(0), AirSync(1), Memory(2), DataFlow(3), Complete(4), Workflow(6)]
+const speakerNotes=[speakerNotesRaw[5],speakerNotesRaw[0],speakerNotesRaw[1],speakerNotesRaw[2],speakerNotesRaw[3],speakerNotesRaw[4],speakerNotesRaw[6]];
 
 // Presenter notes window
 let presenterWindow=null;
@@ -861,6 +877,99 @@ document.querySelectorAll('.arch-block,.arch-center,[data-section]').forEach(e=>
 let touchStartX=0;
 document.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;});
 document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchStartX;if(dx<-50)goTo(current+1);if(dx>50)goTo(current-1);});
+
+// ─── Workflow Slide Interactivity ───
+function animateWorkflowSlide(){
+  const layers=document.querySelectorAll('.wf-layer');
+  const arrows=document.querySelectorAll('.wf-arrow-up');
+  // Reset all
+  layers.forEach(l=>{l.style.opacity='0';l.style.transform='translateY(20px)';l.style.transition='none';});
+  arrows.forEach(a=>{a.style.opacity='0';a.style.transition='none';});
+  // Stagger animate bottom to top
+  setTimeout(()=>{
+    layers.forEach((l,i)=>{
+      const delay=i*200;
+      setTimeout(()=>{
+        l.style.transition='all 0.5s cubic-bezier(0.16,1,0.3,1)';
+        l.style.opacity='1';l.style.transform='translateY(0)';
+      },delay);
+    });
+    arrows.forEach((a,i)=>{
+      setTimeout(()=>{
+        a.style.transition='opacity 0.3s ease';a.style.opacity='1';
+      },i*200+150);
+    });
+  },100);
+}
+
+// Clickable layers - expand/collapse
+document.querySelectorAll('.wf-layer').forEach(layer=>{
+  layer.style.cursor='pointer';
+  layer.addEventListener('click',e=>{
+    if(e.target.closest('.wf-example-btn'))return; // don't interfere with example button
+    const wasExpanded=layer.classList.contains('wf-expanded');
+    document.querySelectorAll('.wf-layer').forEach(l=>{
+      l.classList.remove('wf-expanded');
+      l.style.opacity='1';l.style.filter='';
+    });
+    if(!wasExpanded){
+      layer.classList.add('wf-expanded');
+      document.querySelectorAll('.wf-layer').forEach(l=>{
+        if(l!==layer){l.style.opacity='0.4';l.style.filter='blur(1px)';}
+      });
+    }
+  });
+});
+
+// Example flow trace
+const exampleBtn=document.createElement('button');
+exampleBtn.className='wf-example-btn';
+exampleBtn.textContent='▶ See example: "Reset my password"';
+const wfStack=document.querySelector('.wf-stack');
+if(wfStack){
+  exampleBtn.style.cssText='margin-top:14px;font-family:"Chip Mono",monospace;font-size:11px;padding:8px 16px;border-radius:9999px;background:rgba(122,219,18,0.08);border:1px solid rgba(122,219,18,0.25);color:var(--green);cursor:pointer;transition:all 0.2s ease;display:block;margin-left:auto;margin-right:auto';
+  wfStack.appendChild(exampleBtn);
+
+  let exampleActive=false;
+  exampleBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(exampleActive){
+      // Reset
+      document.querySelectorAll('.wf-layer').forEach(l=>{l.classList.remove('wf-trace');l.style.opacity='1';l.style.filter='';});
+      document.querySelectorAll('.wf-trace-label').forEach(el=>el.remove());
+      exampleBtn.textContent='▶ See example: "Reset my password"';
+      exampleActive=false;
+      return;
+    }
+    exampleActive=true;
+    exampleBtn.textContent='✕ Reset example';
+
+    const layers=document.querySelectorAll('.wf-layer');
+    const traceSteps=[
+      {layer:3,text:'👤 "Reset my password" → Agent understands intent'},
+      {layer:2,text:'🎯 Invokes "Access Request" skill'},
+      {layer:1,text:'⚙️ Workflow checks eligibility → branches'},
+      {layer:0,text:'🔧 Snap-in calls Okta API → access provisioned ✓'},
+    ];
+
+    // Dim all first
+    layers.forEach(l=>{l.style.opacity='0.3';l.style.filter='blur(1px)';l.style.transition='all 0.3s ease';});
+
+    // Animate trace top to bottom
+    traceSteps.forEach((step,i)=>{
+      setTimeout(()=>{
+        const l=layers[step.layer];
+        l.style.opacity='1';l.style.filter='';l.classList.add('wf-trace');
+        // Add trace label
+        const label=document.createElement('div');
+        label.className='wf-trace-label';
+        label.textContent=step.text;
+        label.style.cssText='font-family:"Chip Mono",monospace;font-size:10px;color:var(--green);padding:4px 12px;margin-top:6px;border-radius:6px;background:rgba(122,219,18,0.06);border:1px solid rgba(122,219,18,0.15);animation:fadeIn 0.3s ease';
+        l.appendChild(label);
+      },i*600);
+    });
+  });
+}
 </script>
 </body>
 </html>

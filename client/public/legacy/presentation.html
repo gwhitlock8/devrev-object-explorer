@@ -193,6 +193,39 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 .wf-layer.wf-trace{box-shadow:0 0 12px rgba(122,219,18,0.15);border-color:var(--green)!important}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
+/* ─── SLIDE: The Answer (bridge) ─── */
+.answer-statement{font-family:'Chip Display',system-ui,sans-serif;font-size:48px;font-weight:700;text-align:center;line-height:1.2;max-width:800px;margin-bottom:32px}
+.answer-statement em{font-style:normal;color:var(--y400)}
+.answer-pillars{display:flex;gap:24px;margin-top:24px;flex-wrap:wrap;justify-content:center}
+.answer-pillar{background:var(--n1200);border:1px solid var(--n1000);border-radius:12px;padding:20px 24px;text-align:center;min-width:180px;transition:all 0.3s ease}
+.answer-pillar:hover{border-color:var(--y400);transform:translateY(-2px)}
+.answer-pillar-icon{font-size:28px;margin-bottom:8px}
+.answer-pillar-title{font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--n100);margin-bottom:4px}
+.answer-pillar-desc{font-size:11px;color:var(--n700);line-height:1.4}
+
+/* ─── SLIDE: The Proof ─── */
+.proof-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;width:100%;max-width:800px}
+.proof-card{background:var(--n1200);border:1px solid var(--n1000);border-radius:14px;padding:24px;transition:all 0.3s ease}
+.proof-card:hover{border-color:var(--green);transform:translateY(-2px)}
+.proof-card-num{font-family:'Chip Display',system-ui,sans-serif;font-size:36px;font-weight:700;color:var(--green);margin-bottom:4px}
+.proof-card-metric{font-size:14px;color:var(--n100);font-weight:500;margin-bottom:6px}
+.proof-card-context{font-size:11px;color:var(--n700);line-height:1.4}
+.proof-card-source{font-family:'Chip Mono',monospace;font-size:9px;color:var(--n800);margin-top:8px;text-transform:uppercase}
+.proof-quote{margin-top:28px;padding:20px 24px;background:var(--n1200);border:1px solid var(--n1000);border-left:3px solid var(--y400);border-radius:8px;max-width:800px}
+.proof-quote-text{font-size:14px;color:var(--n500);line-height:1.6;font-style:italic;margin-bottom:8px}
+.proof-quote-author{font-family:'Chip Mono',monospace;font-size:10px;color:var(--n700)}
+
+/* ─── SLIDE: CTA ─── */
+.cta-content{text-align:center;max-width:600px}
+.cta-title{font-family:'Chip Display',system-ui,sans-serif;font-size:52px;font-weight:700;line-height:1.1;margin-bottom:16px}
+.cta-title em{font-style:normal;color:var(--y400)}
+.cta-subtitle{font-size:16px;color:var(--n600);margin-bottom:32px;line-height:1.5}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-action{padding:12px 24px;border-radius:9999px;font-family:'Chip Mono',monospace;font-size:12px;text-transform:uppercase;cursor:default;transition:all 0.2s ease}
+.cta-action-primary{background:var(--y400);color:var(--n1300);font-weight:700;border:none}
+.cta-action-secondary{background:var(--n1100);color:var(--n500);border:1px solid var(--n900)}
+.cta-action:hover{transform:translateY(-1px)}
+
 @media(max-width:900px){
   .slide{padding:40px 24px}
   .title{font-size:32px}
@@ -583,18 +616,97 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 </div>
 </div>
 
+<!-- SLIDE: The Answer (bridge) -->
+<div class="slide" data-slide="7">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">The Solution</span></div>
+<div class="eyebrow">A Different Architecture</div>
+<div class="answer-statement">
+  What if your AI had <em>one memory</em> — pre-composed, permission-aware, and complete — before it ever started thinking?
+</div>
+<p class="subtitle">Not a smarter model. A smarter architecture.</p>
+<div class="answer-pillars">
+  <div class="answer-pillar">
+    <div class="answer-pillar-icon">🧩</div>
+    <div class="answer-pillar-title">One Memory</div>
+    <div class="answer-pillar-desc">All your data — structured and unstructured — unified in a single knowledge graph</div>
+  </div>
+  <div class="answer-pillar">
+    <div class="answer-pillar-icon">⚡</div>
+    <div class="answer-pillar-title">Pre-composed</div>
+    <div class="answer-pillar-desc">Context assembled before inference begins. No runtime fetching, no guessing loops</div>
+  </div>
+  <div class="answer-pillar">
+    <div class="answer-pillar-icon">🔒</div>
+    <div class="answer-pillar-title">Permission-aware</div>
+    <div class="answer-pillar-desc">Every answer respects who is asking. Security is architectural, not behavioral</div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE: The Proof -->
+<div class="slide" data-slide="8">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Results</span></div>
+<div class="eyebrow">In Production Today</div>
+<h1 class="title">The Proof</h1>
+<p class="subtitle">Real outcomes from real deployments</p>
+<div class="proof-grid">
+  <div class="proof-card">
+    <div class="proof-card-num">60%</div>
+    <div class="proof-card-metric">Reduction in IT ticket volume</div>
+    <div class="proof-card-context">AI resolves common requests before they reach a human — password resets, access provisioning, status inquiries.</div>
+    <div class="proof-card-source">Enterprise deployment</div>
+  </div>
+  <div class="proof-card">
+    <div class="proof-card-num">6 hrs</div>
+    <div class="proof-card-metric">Saved per rep per week</div>
+    <div class="proof-card-context">Eliminated manual lookups, context switching, and repetitive data entry across 5+ tools.</div>
+    <div class="proof-card-source">TCC Global</div>
+  </div>
+  <div class="proof-card">
+    <div class="proof-card-num">68 days</div>
+    <div class="proof-card-metric">Discovery to production</div>
+    <div class="proof-card-context">Full deployment including data sync, workflow configuration, and agent training.</div>
+    <div class="proof-card-source">Enterprise deployment</div>
+  </div>
+  <div class="proof-card">
+    <div class="proof-card-num">40%</div>
+    <div class="proof-card-metric">Faster ticket resolution</div>
+    <div class="proof-card-context">Agents surface relevant context instantly — no more searching across tools for customer history.</div>
+    <div class="proof-card-source">Bolt</div>
+  </div>
+</div>
+<div class="proof-quote">
+  <div class="proof-quote-text">"DevRev takes a different approach built on its patented vector-based storage system. Information is stored as connected relationships within a unified data layer rather than scattered into isolated indexes."</div>
+  <div class="proof-quote-author">— Steve Januario, CIO, Bill.com</div>
+</div>
+</div>
+
+<!-- SLIDE: CTA -->
+<div class="slide" data-slide="9">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Next Step</span></div>
+<div class="cta-content">
+  <div class="cta-title">Let's put <em>Computer</em> to work</div>
+  <div class="cta-subtitle">We'll map your data environment, identify your highest-value automation candidates, and show you exactly how Computer would work with your systems.</div>
+  <div class="cta-actions">
+    <div class="cta-action cta-action-primary">Map your environment</div>
+    <div class="cta-action cta-action-secondary">See a live demo</div>
+    <div class="cta-action cta-action-secondary">Talk to engineering</div>
+  </div>
+</div>
+</div>
+
 </div>
 
 <!-- Navigation -->
 <div class="nav-dots" id="nav-dots"></div>
-<div class="slide-num" id="slide-num">1 / 7</div>
+<div class="slide-num" id="slide-num">1 / 10</div>
 <div class="nav-hint">← → navigate · P presenter notes</div>
 
 <script>
 const allSlides=document.querySelectorAll('.slide');
 // Slide presentation order (maps display position → DOM index)
-// New order: Order of Ops(5), Object Model(0), AirSync(1), Memory(2), Data Flow(3), Complete(4), Workflow(6)
-const slideOrder=[5,0,1,2,3,4,6];
+// Order: OoO(5), Answer(7), ObjModel(0), AirSync(1), Memory(2), DataFlow(3), Complete(4), Workflow(6), Proof(8), CTA(9)
+const slideOrder=[5,7,0,1,2,3,4,6,8,9];
 const totalSlides=slideOrder.length;
 const slides=slideOrder.map(i=>allSlides[i]);
 let current=0;
@@ -766,8 +878,65 @@ On the Marketplace:
 Delivery: The 4-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the bottom guarantees outcomes. AI at the top understands intent. The two layers in between — workflows and skills — connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
   }
 ];
-// Reorder speaker notes to match slideOrder: [OoO(5), ObjModel(0), AirSync(1), Memory(2), DataFlow(3), Complete(4), Workflow(6)]
-const speakerNotes=[speakerNotesRaw[5],speakerNotesRaw[0],speakerNotesRaw[1],speakerNotesRaw[2],speakerNotesRaw[3],speakerNotesRaw[4],speakerNotesRaw[6]];
+// Additional speaker notes for new slides
+const answerNotes={
+  title:'The Answer: One Memory',
+  notes:`This is the "relief" slide. You just showed them the problem — now give them hope.
+
+Key talking points:
+• Let the statement breathe. Don't rush to explain. Read it almost like a question: "What if your AI had one memory... pre-composed, permission-aware, and complete... before it ever started thinking?"
+• Pause. Let them absorb.
+• "Not a smarter model. A smarter architecture." — This is the thesis of the entire presentation.
+• The three pillars reinforce without over-explaining:
+  - One Memory: "All your scattered data in one place"
+  - Pre-composed: "No runtime fetching — the context is ready before the LLM touches it"
+  - Permission-aware: "It knows who's asking, not just what's being asked"
+
+Delivery: This slide should feel like the clouds parting. Keep your energy calm and confident — you're not selling here, you're revealing. The slides that follow will prove it. This one just names it.
+
+For exec audiences: You can stay on this slide longer and have a brief conversation before diving into the architecture. "Does this resonate with what you've experienced?" is a good bridge question.`
+};
+
+const proofNotes={
+  title:'The Proof',
+  notes:`This is where skepticism dies. Numbers, not promises.
+
+Key talking points:
+• Don't read every card. Pick the 1-2 that match the buyer's use case:
+  - IT/support buyer? → 60% ticket reduction, 40% faster resolution
+  - Sales/productivity buyer? → 6 hrs saved per rep per week
+  - Speed-to-value buyer? → 68 days discovery to production
+• The Bill.com quote is from their CIO. Use it if the audience is executive. Skip for technical.
+• "These aren't pilots or POCs. These are production deployments."
+
+Optional depth (if they ask):
+• TCC Global: retail loyalty company, 30% productivity boost, $1.2M org savings/year
+• Bolt: fintech, 4X support productivity, 25% increase in customer retention
+• Camping World: 2000+ new hires supported annually without adding IT staff
+
+Delivery: Let the numbers land. Don't over-explain them. If someone asks "how did you get 60%?" — that's a great opening for "let me show you exactly how that works with YOUR data" → leads to CTA.`
+};
+
+const ctaNotes={
+  title:'Let\\'s Put Computer to Work',
+  notes:`The close. Keep it simple and action-oriented.
+
+Key talking points:
+• "We'll map your data environment" — this ties directly to the Object Explorer you've been showing. "We have a tool that discovers your object model automatically."
+• Don't ask "what questions do you have?" — that's passive. Instead: "Based on what you've seen, which area feels most relevant to what you're dealing with right now?"
+• The three CTAs give them choice without being overwhelming:
+  - "Map your environment" = technical next step (data discovery, PAT, AirSync conversation)
+  - "See a live demo" = if they want to see it in action before committing
+  - "Talk to engineering" = if there's a technical blocker or security question
+
+If time is short (you're at minute 28 of 30):
+• Skip the subtitle. Just say: "One next step — let's map your environment. I'll show you exactly what Computer would see from your systems. Takes 15 minutes."
+
+Delivery: Confident, not pushy. You've earned the right to ask for next steps because you just showed them real proof. End on a specific recommendation, not a generic "what do you think?""`
+};
+
+// Reorder speaker notes to match slideOrder: [OoO, Answer, ObjModel, AirSync, Memory, DataFlow, Complete, Workflow, Proof, CTA]
+const speakerNotes=[speakerNotesRaw[5],answerNotes,speakerNotesRaw[0],speakerNotesRaw[1],speakerNotesRaw[2],speakerNotesRaw[3],speakerNotesRaw[4],speakerNotesRaw[6],proofNotes,ctaNotes];
 
 // Presenter notes window
 let presenterWindow=null;

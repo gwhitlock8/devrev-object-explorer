@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from './Toast.jsx';
 
@@ -13,8 +13,12 @@ export default function AdminDashboard() {
   const [copied, setCopied] = useState(null);
   const [search, setSearch] = useState('');
   const toast = useToast();
+  const checkedRef = useRef(false);
 
   useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
     // Check auth first before trying to fetch orgs
     fetch('/api/session', { credentials: 'include', cache: 'no-store' })
       .then(r => r.json())
@@ -26,7 +30,7 @@ export default function AdminDashboard() {
         }
       })
       .catch(() => navigate('/admin', { replace: true }));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchOrgs() {
     try {

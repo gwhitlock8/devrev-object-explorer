@@ -1,21 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
+  const checkedRef = useRef(false);
 
-  // Check if already authenticated
+  // Check if already authenticated - only once
   useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
     fetch('/api/session', { credentials: 'include', cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => {
-        if (d.authenticated) navigate('/admin/dashboard', { replace: true });
+        if (d.authenticated && d.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          setChecking(false);
+        }
       })
-      .catch(() => {});
-  }, [navigate]);
+      .catch(() => setChecking(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,12 +40,20 @@ export default function AdminLogin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checking) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner" />
+      </div>
+    );
   }
 
   return (
@@ -50,6 +67,8 @@ export default function AdminLogin() {
           <input
             type="password"
             className="auth-input"
+            name="admin-password"
+            id="admin-password"
             placeholder="Master password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

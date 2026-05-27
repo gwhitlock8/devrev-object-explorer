@@ -15,20 +15,30 @@ export default function AdminDashboard() {
   const toast = useToast();
 
   useEffect(() => {
-    fetchOrgs();
+    // Check auth first before trying to fetch orgs
+    fetch('/api/session', { credentials: 'include', cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.authenticated || d.role !== 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          fetchOrgs();
+        }
+      })
+      .catch(() => navigate('/admin', { replace: true }));
   }, []);
 
   async function fetchOrgs() {
     try {
       const res = await fetch('/api/orgs', { credentials: 'include', cache: 'no-store' });
       if (res.status === 401) {
-        navigate('/admin');
+        navigate('/admin', { replace: true });
         return;
       }
       const data = await res.json();
       setOrgs(data.orgs || []);
     } catch {
-      navigate('/admin');
+      navigate('/admin', { replace: true });
     } finally {
       setLoading(false);
     }

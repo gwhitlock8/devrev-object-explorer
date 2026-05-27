@@ -57,7 +57,7 @@ export default function Layout() {
             Object Model
           </NavLink>
           <NavLink
-            to="/admin/dashboard"
+            to="/admin"
             className={({ isActive }) => `nav-link customer ${isActive || isAdminArea ? 'active' : ''}`}
           >
             Manage

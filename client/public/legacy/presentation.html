@@ -160,6 +160,35 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 .oo-insight strong{color:var(--n100)}
 .oo-insight-sub{display:block;margin-top:4px;font-size:11px;color:var(--n800)}
 
+/* ─── SLIDE 7: Workflow Engine & AI ─── */
+.wf-stack{display:flex;flex-direction:column;gap:0;width:100%;max-width:900px;position:relative}
+.wf-layer{position:relative;padding:18px 24px;border:1px solid var(--n1000);border-radius:12px;margin-bottom:-1px}
+.wf-layer-1{background:var(--n1200);border-color:var(--n900);z-index:1}
+.wf-layer-2{background:var(--n1100);border-color:var(--orange);z-index:2}
+.wf-layer-3{background:rgba(136,84,246,0.04);border-color:var(--purple);z-index:3}
+.wf-layer-4{background:rgba(122,219,18,0.04);border-color:var(--green);z-index:4}
+.wf-layer-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wf-layer-title{font-family:'Chip Display',system-ui,sans-serif;font-size:14px;font-weight:700}
+.wf-layer-1 .wf-layer-title{color:var(--n500)}
+.wf-layer-2 .wf-layer-title{color:var(--orange)}
+.wf-layer-3 .wf-layer-title{color:var(--purple)}
+.wf-layer-4 .wf-layer-title{color:var(--green)}
+.wf-layer-badge{font-family:'Chip Mono',monospace;font-size:9px;padding:3px 8px;border-radius:9999px;background:var(--n1200);border:1px solid var(--n1000);color:var(--n700);text-transform:uppercase}
+.wf-layer-desc{font-size:12px;color:var(--n700);line-height:1.5;margin-bottom:8px}
+.wf-layer-items{display:flex;flex-wrap:wrap;gap:6px}
+.wf-item{font-family:'Chip Mono',monospace;font-size:10px;padding:4px 10px;border-radius:6px;background:var(--n1200);border:1px solid var(--n1000);color:var(--n600)}
+.wf-arrow-up{text-align:center;font-size:14px;color:var(--n700);padding:6px 0}
+
+.wf-apps{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.wf-app-group{display:flex;flex-direction:column;align-items:center;gap:6px}
+.wf-app-group-label{font-family:'Chip Mono',monospace;font-size:9px;color:var(--n700);text-transform:uppercase}
+.wf-app-list{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.wf-app{padding:6px 12px;border-radius:8px;background:var(--n1200);border:1px solid var(--n1000);font-size:11px;color:var(--n600);display:flex;align-items:center;gap:5px}
+.wf-app-icon{font-size:13px}
+
+.wf-security{text-align:center;margin-top:18px;padding:10px 16px;border-radius:8px;background:rgba(255,230,0,0.04);border:1px solid rgba(255,230,0,0.15);font-size:11px;color:var(--n600);max-width:600px;margin-left:auto;margin-right:auto}
+.wf-security strong{color:var(--y400)}
+
 @media(max-width:900px){
   .slide{padding:40px 24px}
   .title{font-size:32px}
@@ -171,6 +200,8 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
   .oo-row{flex-direction:column;align-items:flex-start;gap:12px}
   .oo-flow{flex-wrap:wrap;gap:6px}
   .oo-step{min-width:80px;padding:8px}
+  .wf-layer{padding:12px 16px}
+  .wf-apps{flex-direction:column;align-items:center}
 }
 </style>
 </head>
@@ -446,11 +477,113 @@ h1,h2,h3{font-family:'Chip Display',system-ui,sans-serif;letter-spacing:0.0075em
 </div>
 </div>
 
+<!-- SLIDE 7: Workflow Engine & AI Agents -->
+<div class="slide" data-slide="6">
+<div class="slide-header"><svg viewBox="0 0 250 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.4544 9.96464V19.9293C4.88066 19.9293 0.293945 15.4307 0.293945 9.96464C0.293945 4.4986 4.88066 0 10.4544 0C16.0281 0 20.6148 4.4986 20.6148 9.96464H10.4544Z" fill="white"/><path d="M29.0296 31.242V41.2066C23.4559 41.2066 18.8691 36.708 18.8691 31.242C18.8691 25.7759 23.4559 21.2773 29.0296 21.2773C34.6033 21.2773 39.19 25.7759 39.19 31.242H29.0296Z" fill="white"/><path d="M29.0259 19.6418L39.4767 0.292969H18.5752L29.0259 19.6418Z" fill="white"/><path d="M10.4507 40.9211L20.9015 21.5723H0L10.4507 40.9211Z" fill="white"/></svg><span class="badge">Execution</span></div>
+<div class="eyebrow">How AI Acts</div>
+<h1 class="title">From Data to Action</h1>
+<p class="subtitle">A 3-layer execution stack where AI guides decisions but deterministic workflows guarantee outcomes</p>
+
+<div class="wf-stack">
+  <!-- Layer 1: Snap-ins (bottom) -->
+  <div class="wf-layer wf-layer-1">
+    <div class="wf-layer-header">
+      <div class="wf-layer-title">Snap-ins</div>
+      <span class="wf-layer-badge">Full code</span>
+    </div>
+    <div class="wf-layer-desc">Custom code in Docker containers with manifest-driven deployment. OAuth, secrets, and parameters built in. Any language, 15-min runtime.</div>
+    <div class="wf-layer-items">
+      <span class="wf-item">Docker containers</span>
+      <span class="wf-item">OAuth/secrets mgmt</span>
+      <span class="wf-item">External API access</span>
+      <span class="wf-item">Marketplace-ready</span>
+    </div>
+  </div>
+
+  <div class="wf-arrow-up">↑ wraps into</div>
+
+  <!-- Layer 2: Workflows (middle) -->
+  <div class="wf-layer wf-layer-2">
+    <div class="wf-layer-header">
+      <div class="wf-layer-title">Workflows</div>
+      <span class="wf-layer-badge">Visual builder</span>
+    </div>
+    <div class="wf-layer-desc">Connect snap-ins as nodes in a visual DAG. Supports parallel processing, branching, loops, and error handling. AI nodes can be interspersed for semantic decisions.</div>
+    <div class="wf-layer-items">
+      <span class="wf-item">Sequential / Parallel</span>
+      <span class="wf-item">Branching & loops</span>
+      <span class="wf-item">AI decision nodes</span>
+      <span class="wf-item">Error handling</span>
+      <span class="wf-item">Triggers (CDC)</span>
+    </div>
+  </div>
+
+  <div class="wf-arrow-up">↑ packaged as</div>
+
+  <!-- Layer 3: Skills -->
+  <div class="wf-layer wf-layer-3">
+    <div class="wf-layer-header">
+      <div class="wf-layer-title">Skills</div>
+      <span class="wf-layer-badge">Agent capabilities</span>
+    </div>
+    <div class="wf-layer-desc">Workflows packaged with natural language descriptions so AI agents can invoke them. Both deterministic (workflow-based) and non-deterministic (LLM-based) skills available.</div>
+    <div class="wf-layer-items">
+      <span class="wf-item">NL descriptions</span>
+      <span class="wf-item">Deterministic execution</span>
+      <span class="wf-item">Composable</span>
+      <span class="wf-item">Auditable</span>
+    </div>
+  </div>
+
+  <div class="wf-arrow-up">↑ leveraged by</div>
+
+  <!-- Layer 4: AI Agents (top) -->
+  <div class="wf-layer wf-layer-4">
+    <div class="wf-layer-header">
+      <div class="wf-layer-title">AI Agents</div>
+      <span class="wf-layer-badge">Conversational</span>
+    </div>
+    <div class="wf-layer-desc">Agents guide users via conversation, understand intent, and invoke the right skills. AI provides guidance — actual actions run deterministically through workflows below.</div>
+    <div class="wf-layer-items">
+      <span class="wf-item">CX Agent</span>
+      <span class="wf-item">Product Agent</span>
+      <span class="wf-item">Search Agent</span>
+      <span class="wf-item">Dev Agent</span>
+      <span class="wf-item">Custom agents</span>
+    </div>
+  </div>
+</div>
+
+<!-- Apps that consume agents -->
+<div class="wf-apps">
+  <div class="wf-app-group">
+    <span class="wf-app-group-label">Customer-facing</span>
+    <div class="wf-app-list">
+      <div class="wf-app"><span class="wf-app-icon">💬</span>Chat Widget</div>
+      <div class="wf-app"><span class="wf-app-icon">🔍</span>Search Bar</div>
+      <div class="wf-app"><span class="wf-app-icon">🌐</span>Portal</div>
+    </div>
+  </div>
+  <div class="wf-app-group">
+    <span class="wf-app-group-label">For your teams</span>
+    <div class="wf-app-list">
+      <div class="wf-app"><span class="wf-app-icon">🎫</span>Support App</div>
+      <div class="wf-app"><span class="wf-app-icon">🔧</span>Build App</div>
+      <div class="wf-app"><span class="wf-app-icon">💰</span>Grow App</div>
+    </div>
+  </div>
+</div>
+
+<div class="wf-security">
+  <strong>Security by architecture:</strong> AI never controls access. The knowledge graph is permission-aware — data visibility is enforced at query level, not agent level. No prompt injection can bypass access control.
+</div>
+</div>
+
 </div>
 
 <!-- Navigation -->
 <div class="nav-dots" id="nav-dots"></div>
-<div class="slide-num" id="slide-num">1 / 6</div>
+<div class="slide-num" id="slide-num">1 / 7</div>
 <div class="nav-hint">← → navigate · P presenter notes</div>
 
 <script>
@@ -506,11 +639,17 @@ Key talking points:
 • "Every other platform gives you silos. Salesforce knows your deals, Jira knows your bugs, Zendesk knows your tickets. None of them know how those connect. We do."
 • The 92 relationships are the differentiator — it's not just storing objects, it's knowing that this ticket relates to this feature which belongs to this product which is sold via this opportunity.
 
-Delivery: Let them absorb the visual. Don't rush to explain every object. Let the scale speak.`
+From the architecture deep-dive (knowledge graph extensibility):
+• "We can subclass objects to have new subtypes. We can modify existing objects. We can create completely custom objects. And we can produce links between any objects in any way we need."
+• "We come with a predefined ontology, but it's fully extensible."
+• The semantic relationships between objects are what make AI and workflow use cases possible — this isn't just storage, it's structured meaning.
+• Object-oriented model with inheritance: base objects (accounts, customers, users, work items) can be customized into subtypes (opportunities, bug requests, feature requests).
+
+Delivery: Let them absorb the visual. Don't rush to explain every object. Let the scale speak. If they ask "can we add our own objects?" — yes, that's the whole point of the extensible knowledge graph.`
   },
   {
     title:'Bidirectional Data Ingestion (AirSync)',
-    notes:`AirSync is patented technology. Emphasize the "bidirectional" — this isn't a one-way dump.
+    notes:`AirSync is patented technology — 3 years of R&D to build. Emphasize the "bidirectional" — this isn't a one-way dump.
 
 Key talking points:
 • "Most integrations are read-only scrapers. AirSync reads AND writes. Changes flow both directions."
@@ -519,7 +658,12 @@ Key talking points:
 • Near-real-time means hourly default, configurable. Not batch overnight.
 • "Lossless transformation" — we don't lose context. A Jira epic with 15 custom fields keeps all 15.
 
-Delivery: This is where technical buyers get excited. If they ask "how do you handle schema drift?" — say "subtypes and 1:1 mapping." If they ask about scale — we handle millions of objects per sync unit.`
+From the architecture deep-dive:
+• "After 3 years of R&D, we built an interface that lets us rapidly build new integrations — even to legacy, in-house apps — as long as they expose the right APIs."
+• AirDrop (the internal name) handles connection maintenance, secure credential renewal, everything.
+• The key insight: "Between the knowledge graph definition and AirDrop, we can create any data model and populate it from any source. Two-way."
+
+Delivery: This is where technical buyers get excited. If they ask "how do you handle schema drift?" — say "subtypes and 1:1 mapping." If they ask about scale — we handle millions of objects per sync unit. If they ask "can you connect to our internal tools?" — YES, that's what the interface is for.`
   },
   {
     title:'8 Datastores (Memory)',
@@ -532,6 +676,13 @@ Key talking points:
   - Permissions Store: "Data leakage is architecturally impossible — every query checks permissions"
   - Time Series: "We can answer 'what changed last week' because we store the deltas"
 • "This is why we can answer questions that stumble every other AI tool. It's not a smarter model — it's better-organized data."
+
+From the architecture deep-dive (CDC pipeline detail):
+• "As things happen in the knowledge graph — new accounts, work items, sessions, articles — they generate deltas. These deltas flow through our CDC pipeline to all downstream stores simultaneously."
+• Search supports BOTH syntactic (reverse index, exact match) AND semantic (embedding models). "We don't just index the object — we index comments, discussions, and related events too."
+• You can have MULTIPLE embedding models for different tasks — not one-size-fits-all.
+• The Data Warehouse is a time series store: "We can reconstruct anything that happened to any object — when, by whom, and what changed."
+• Analytics are definable on the client side. "We come with built-ins, but you define your own. We create summarization jobs that condense the data warehouse into dashboards."
 
 Delivery: The audience probably hasn't thought about WHY you'd need 8 stores. Make it concrete: "If I ask 'show me deals that are at risk' — I need relational data (the deal), time series (is it stalling?), graph (who's the champion?), and permissions (can I see it?). That's 4 stores in one question. Nobody else can do that in one call."
 
@@ -575,6 +726,30 @@ Key talking points:
 • Compound error callout at the bottom: "At 75% per step, 5 steps = 23.7% success. We eliminate compounding entirely because there's nothing to compound."
 
 Delivery: Say "guessing loop" like it's a diagnosis, not an insult. You're naming the architecture, not attacking the buyer's prior choices. The <65% stat is a gut punch — let it breathe for a beat before moving on. Then the bottom row should feel like relief: "There's a better way."`
+  },
+  {
+    title:'From Data to Action (Workflow Engine & AI)',
+    notes:`This slide answers the question: "OK, you have all this data — but how does AI actually DO things?"
+
+Key talking points:
+• Walk bottom-to-top through the 4 layers:
+  1. SNAP-INS: "At the bottom, it's full code. Docker containers, any language. This is where the actual work happens — calling an API, provisioning access, sending a notification. 15-minute runtime, built-in OAuth and secret management."
+  2. WORKFLOWS: "Wrap those code blocks into a visual builder. Triggers, branches, parallel paths, loops. Less technical people can compose complex automations. AND — this is key — you can drop AI nodes in between the deterministic steps."
+  3. SKILLS: "Package a workflow with a natural language description. Now an AI agent can invoke it just from understanding what the user is asking for."
+  4. AI AGENTS: "The conversational layer. CX Agent handles customer questions, Dev Agent helps engineers, Product Agent surfaces insights. They GUIDE — but the ACTIONS run through the deterministic layers below."
+
+The critical differentiator (emphasize this):
+• "AI provides guidance and deflection. But final actions run deterministically."
+• Give the example: "User says 'give me access to Salesforce.' The AI agent understands the request, checks if they qualify, explains requirements. But the actual provisioning follows a predetermined workflow. No prompt injection can grant unauthorized access."
+• "This is why we say security is architectural, not behavioral. The LLM never controls access. Permissions are enforced at the knowledge graph level."
+
+On the Apps section:
+• "These agents surface through multiple channels simultaneously — chat widget for customers, support app for agents, build app for engineers. Same skills, same data, different audiences."
+
+On the Marketplace:
+• "You can package snap-ins and skills for the marketplace. Build once, distribute to other DevRev customers."
+
+Delivery: The 3-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the bottom guarantees outcomes. AI at the top understands intent. The layers in between connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
   }
 ];
 

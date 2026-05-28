@@ -1,0 +1,36 @@
+@font-face {
+  font-family: 'Chip Display';
+  src: url('/fonts/ChipDisp-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Chip Display';
+  src: url('/fonts/ChipDisp-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Chip Text';
+  src: url('/fonts/ChipText-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Chip Text';
+  src: url('/fonts/ChipText-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Chip Mono';
+  src: url('/fonts/ChipMono-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --font-display: 'Chip Display', 'Inter', system-ui, sans-serif;
+  --font-text: 'Chip Text', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Chip Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}

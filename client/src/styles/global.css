@@ -1,35 +1,7 @@
-@font-face {
-  font-family: 'Chip Display';
-  src: url('/fonts/ChipDisp-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Chip Display';
-  src: url('/fonts/ChipDisp-Semibold.otf') format('opentype');
-  font-weight: 600;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Chip Text';
-  src: url('/fonts/ChipText-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Chip Text';
-  src: url('/fonts/ChipText-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Chip Mono';
-  src: url('/fonts/ChipMono-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-display: swap;
-}
-
 :root {
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-text: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --n100: #ffffff;
   --n500: #cecece;
   --n600: #a5a2a4;
@@ -57,7 +29,7 @@
 }
 
 body {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   background: var(--n1300);
   color: var(--n100);
   min-height: 100vh;
@@ -67,7 +39,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0.0075em;
 }
 
@@ -104,7 +76,7 @@ a {
 }
 
 .nav-link {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 6px 14px;
   border-radius: 9999px;
@@ -173,7 +145,7 @@ a {
   border: 1px solid var(--n900);
   background: var(--n1100);
   color: var(--n100);
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   outline: none;
   transition: border-color 0.2s ease;
@@ -195,7 +167,7 @@ a {
   border: none;
   background: var(--y400);
   color: var(--n1300);
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -225,7 +197,7 @@ a {
 .auth-link {
   display: inline-block;
   margin-top: 16px;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--n700);
   text-decoration: none;
@@ -260,7 +232,7 @@ a {
 }
 
 .loading-text {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--n700);
   text-transform: uppercase;
@@ -290,7 +262,7 @@ a {
 }
 
 .results-org {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 18px;
 }
 
@@ -299,7 +271,7 @@ a {
 }
 
 .results-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 3px 10px;
   border-radius: 9999px;
@@ -331,14 +303,14 @@ a {
 }
 
 .stat-num {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 700;
   color: var(--y400);
 }
 
 .stat-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n700);
   text-transform: uppercase;
@@ -374,7 +346,7 @@ a {
 }
 
 .cat-card-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;
   color: var(--n600);
@@ -382,7 +354,7 @@ a {
 
 .cat-card-count {
   margin-left: auto;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n800);
 }
@@ -400,7 +372,7 @@ a {
 }
 
 .cat-obj-type {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   padding: 2px 6px;
   border-radius: 9999px;
@@ -445,14 +417,14 @@ a {
 }
 
 .graph-section-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;
   color: var(--n700);
 }
 
 .graph-section-hint {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n800);
 }
@@ -494,7 +466,7 @@ a {
 }
 
 .admin-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 3px 10px;
   border-radius: 9999px;
@@ -504,7 +476,7 @@ a {
 }
 
 .admin-create-btn {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 8px 16px;
   border-radius: 9999px;
@@ -529,7 +501,7 @@ a {
 }
 
 .create-form-title {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   margin-bottom: 16px;
 }
@@ -542,7 +514,7 @@ a {
 }
 
 .create-field label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   color: var(--n700);
@@ -559,7 +531,7 @@ a {
 }
 
 .create-field-hint {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n800);
   margin-top: 2px;
@@ -595,13 +567,13 @@ a {
 }
 
 .org-card-name {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
 }
 
 .org-card-slug {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--n700);
   margin-top: 2px;
@@ -622,7 +594,7 @@ a {
 }
 
 .org-card-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   color: var(--n800);
@@ -675,7 +647,7 @@ a {
 }
 
 .org-stale-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   padding: 2px 6px;
   border-radius: 4px;
@@ -704,7 +676,7 @@ a {
 }
 
 .results-action-btn {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 6px 12px;
   border-radius: 9999px;
@@ -748,7 +720,7 @@ a {
 }
 
 .admin-panel-section-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   color: var(--n700);
@@ -763,7 +735,7 @@ a {
 }
 
 .share-select {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 6px 10px;
   border-radius: 6px;
@@ -774,7 +746,7 @@ a {
 }
 
 .share-create-btn {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 6px 12px;
   border-radius: 6px;
@@ -804,7 +776,7 @@ a {
 }
 
 .share-item-url {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n500);
   cursor: pointer;
@@ -827,7 +799,7 @@ a {
 }
 
 .share-revoke {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   padding: 2px 8px;
   border-radius: 4px;
@@ -843,7 +815,7 @@ a {
 }
 
 .export-btn {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 8px 14px;
   border-radius: 8px;
@@ -866,7 +838,7 @@ a {
 }
 
 .annotation-input {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 12px;
   padding: 8px 10px;
   border-radius: 6px;
@@ -888,7 +860,7 @@ a {
 }
 
 .annotation-author-input {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 6px 10px;
   border-radius: 6px;
@@ -932,7 +904,7 @@ a {
 }
 
 .annotations-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;
   color: var(--n700);
@@ -962,7 +934,7 @@ a {
 .annotation-meta {
   display: flex;
   gap: 8px;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   color: var(--n800);
 }
@@ -983,7 +955,7 @@ a {
 }
 
 .diff-title {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 14px;
 }
 
@@ -994,7 +966,7 @@ a {
 }
 
 .diff-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n700);
 }
@@ -1012,7 +984,7 @@ a {
 }
 
 .diff-stat {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1031,7 +1003,7 @@ a {
 }
 
 .diff-section-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1057,7 +1029,7 @@ a {
 .diff-item.changed { background: rgba(255, 230, 0, 0.05); border-left: 2px solid var(--y400); }
 
 .diff-item-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   padding: 1px 6px;
   border-radius: 4px;
@@ -1072,7 +1044,7 @@ a {
 
 .diff-item-detail {
   margin-left: auto;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n700);
 }
@@ -1143,7 +1115,7 @@ a {
   border: 1px solid var(--n900);
   background: var(--n1100);
   color: var(--n100);
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 13px;
   outline: none;
   transition: border-color 0.2s ease;
@@ -1160,7 +1132,7 @@ a {
 /* ==== Logout Button ==== */
 
 .nav-logout {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 5px 12px;
   border-radius: 9999px;

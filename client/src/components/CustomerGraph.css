@@ -45,7 +45,7 @@
 }
 
 .node-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   fill: var(--n500);
   text-transform: uppercase;
@@ -58,14 +58,14 @@
 }
 
 .conn-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 8px;
   fill: var(--n1300);
   font-weight: 700;
 }
 
 .edge-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   fill: var(--green);
   opacity: 0.9;
@@ -117,7 +117,7 @@
 }
 
 .panel-type-name {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--n100);
   font-weight: 500;
@@ -129,7 +129,7 @@
 }
 
 .panel-rel-label {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 11px;
   color: var(--n600);
   font-style: italic;
@@ -157,7 +157,7 @@
 }
 
 .panel-section-label {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   color: var(--n700);
@@ -191,7 +191,7 @@
 }
 
 .example-label {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 12px;
   color: var(--n500);
   white-space: nowrap;
@@ -232,19 +232,19 @@
 }
 
 .node-info-type {
-  font-family: 'Chip Display', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 13px;
   color: var(--n100);
 }
 
 .node-info-count {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n700);
 }
 
 .node-info-annotations {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--y400);
 }
@@ -254,7 +254,7 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 6px 12px;
   border-radius: 9999px;
@@ -288,14 +288,14 @@
 }
 
 .annotation-count {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 8px;
   fill: var(--n600);
 }
 
 /* Annotation panel content */
 .annotation-type-badge {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 3px 8px;
   border-radius: 4px;
@@ -305,7 +305,7 @@
 }
 
 .annotation-panel-text {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 14px;
   color: var(--n100);
   line-height: 1.5;
@@ -315,7 +315,7 @@
 .annotation-panel-meta {
   display: flex;
   gap: 12px;
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n700);
 }
@@ -362,7 +362,7 @@
 }
 
 .neighborhood-title {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -430,13 +430,13 @@
 
 .ne-from,
 .ne-to {
-  font-family: 'Chip Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--n500);
 }
 
 .ne-label {
-  font-family: 'Chip Text', system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 10px;
   color: var(--n700);
   font-style: italic;

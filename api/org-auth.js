@@ -1,8 +1,9 @@
 import { signOrgToken, setOrgCookie } from './_lib/auth.js';
 import { verifyOrgPassword, verifyShareToken } from './_lib/db.js';
-import { json, parseBody } from './_lib/handler.js';
+import { json, parseBody, safeErrorMessage } from './_lib/handler.js';
+import { enforceRateLimit, getRateLimitKey } from './_lib/rateLimit.js';
+import { validateShareToken, validateSlug } from './_lib/validate.js';
 
-// POST /api/org-auth — authenticate with org password or share token
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
@@ -10,14 +11,26 @@ export default async function handler(req, res) {
 
   try {
     const body = await parseBody(req);
-    const { slug, password, shareToken } = body;
+    const slug = validateSlug(body.slug);
 
     if (!slug) {
-      return json(res, 400, { error: 'Slug is required' });
+      return json(res, 400, { error: 'Invalid slug' });
     }
 
-    // Option 1: Share token auth
-    if (shareToken) {
+    const allowed = await enforceRateLimit(
+      req,
+      res,
+      json,
+      `${getRateLimitKey(req, 'org-auth')}:${slug}`,
+      { limit: 10, windowSec: 900 }
+    );
+    if (!allowed) return;
+
+    if (body.shareToken) {
+      const shareToken = validateShareToken(body.shareToken);
+      if (!shareToken) {
+        return json(res, 400, { error: 'Invalid share token format' });
+      }
       const tokenSlug = await verifyShareToken(shareToken);
       if (tokenSlug === slug) {
         const token = await signOrgToken(slug);
@@ -27,8 +40,8 @@ export default async function handler(req, res) {
       return json(res, 401, { error: 'Invalid or expired share link' });
     }
 
-    // Option 2: Password auth
-    if (!password) {
+    const { password } = body;
+    if (typeof password !== 'string' || !password) {
       return json(res, 400, { error: 'Password is required' });
     }
 
@@ -41,7 +54,10 @@ export default async function handler(req, res) {
     setOrgCookie(res, slug, token);
     return json(res, 200, { ok: true, role: 'org' });
   } catch (error) {
+    if (error.message === 'Request body too large') {
+      return json(res, 413, { error: 'Request body too large' });
+    }
     console.error('Org auth error:', error);
-    return json(res, 500, { error: 'Authentication failed' });
+    return json(res, 500, { error: safeErrorMessage(error, 'Authentication failed') });
   }
 }

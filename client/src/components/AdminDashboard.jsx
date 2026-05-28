@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSession } from './SessionProvider.jsx';
 import { useToast } from './Toast.jsx';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { loading: sessionLoading, isAdmin } = useSession();
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -13,38 +15,44 @@ export default function AdminDashboard() {
   const [copied, setCopied] = useState(null);
   const [search, setSearch] = useState('');
   const toast = useToast();
-  const checkedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const copyTimeoutRef = useRef(null);
 
   useEffect(() => {
-    if (checkedRef.current) return;
-    checkedRef.current = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
-    // Check auth first before trying to fetch orgs
-    fetch('/api/session', { credentials: 'include', cache: 'no-store' })
-      .then(r => r.json())
-      .then(d => {
-        if (!d.authenticated || d.role !== 'admin') {
-          navigate('/admin', { replace: true });
-        } else {
-          fetchOrgs();
-        }
-      })
-      .catch(() => navigate('/admin', { replace: true }));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (sessionLoading) return undefined;
+    if (!isAdmin) {
+      navigate('/admin', { replace: true });
+      return undefined;
+    }
 
-  async function fetchOrgs() {
+    const controller = new AbortController();
+    fetchOrgs(controller.signal);
+    return () => controller.abort();
+  }, [sessionLoading, isAdmin, navigate]);
+
+  async function fetchOrgs(signal) {
     try {
-      const res = await fetch('/api/orgs', { credentials: 'include', cache: 'no-store' });
+      const res = await fetch('/api/orgs', { credentials: 'include', cache: 'no-store', signal });
+      if (!mountedRef.current) return;
       if (res.status === 401) {
         navigate('/admin', { replace: true });
         return;
       }
       const data = await res.json();
       setOrgs(data.orgs || []);
-    } catch {
+    } catch (err) {
+      if (err.name === 'AbortError' || !mountedRef.current) return;
       navigate('/admin', { replace: true });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
@@ -72,13 +80,14 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Discovery failed');
 
+      if (!mountedRef.current) return;
       setShowCreate(false);
       setCreateForm({ pat: '', password: '', slug: '' });
       await fetchOrgs();
     } catch (err) {
-      setCreateError(err.message);
+      if (mountedRef.current) setCreateError(err.message);
     } finally {
-      setCreating(false);
+      if (mountedRef.current) setCreating(false);
     }
   }
 
@@ -95,19 +104,28 @@ export default function AdminDashboard() {
         const data = await res.json();
         throw new Error(data.error || 'Delete failed');
       }
+      if (!mountedRef.current) return;
       toast.success('Org deleted successfully');
       await fetchOrgs();
     } catch (err) {
-      toast.error(`Delete failed: ${err.message}`);
+      if (mountedRef.current) toast.error(`Delete failed: ${err.message}`);
     }
   }
 
-  function copyUrl(slug) {
+  async function copyUrl(slug) {
     const url = `${window.location.origin}/customer/${slug}`;
-    navigator.clipboard.writeText(url);
-    setCopied(slug);
-    toast.success('URL copied to clipboard');
-    setTimeout(() => setCopied(null), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      if (!mountedRef.current) return;
+      setCopied(slug);
+      toast.success('URL copied to clipboard');
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => {
+        if (mountedRef.current) setCopied(null);
+      }, 2000);
+    } catch {
+      if (mountedRef.current) toast.error('Failed to copy URL');
+    }
   }
 
   function formatDate(d) {
@@ -127,7 +145,7 @@ export default function AdminDashboard() {
     return diff;
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return (
       <div className="loading-page">
         <div className="loading-spinner" />
@@ -154,7 +172,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Create new org form */}
       {showCreate && (
         <div className="admin-create-panel">
           <form onSubmit={handleCreate}>
@@ -206,7 +223,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Search */}
       {orgs.length > 3 && (
         <div className="admin-search">
           <input
@@ -219,7 +235,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Org list */}
       <div className="admin-org-list">
         {orgs.length === 0 && !showCreate && (
           <div className="admin-empty">

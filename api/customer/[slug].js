@@ -1,21 +1,22 @@
 import { isAuthenticated, isOrgAuthenticated, getShareTokenFromRequest } from '../_lib/auth.js';
-import { getCustomerBySlug, verifyShareToken, getAnnotations, getSnapshots, recordCustomerView } from '../_lib/db.js';
+import { getCustomerBySlug, verifyShareToken, getAnnotations, customerHasStoredPat, recordCustomerView } from '../_lib/db.js';
 import { json } from '../_lib/handler.js';
+import { validateShareToken, validateSlug } from '../_lib/validate.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return json(res, 405, { error: 'Method not allowed' });
   }
 
-  const slug = req.query?.slug;
+  const slug = validateSlug(req.query?.slug || '');
   if (!slug) {
-    return json(res, 400, { error: 'Slug is required' });
+    return json(res, 400, { error: 'Invalid slug' });
   }
 
-  // Check auth: admin, org-level, or share token
   const isAdmin = await isAuthenticated(req);
   const isOrgAuth = await isOrgAuthenticated(req, slug);
-  const shareToken = getShareTokenFromRequest(req);
+  const rawShareToken = getShareTokenFromRequest(req);
+  const shareToken = rawShareToken ? validateShareToken(rawShareToken) : null;
   let isShareAuth = false;
 
   if (!isAdmin && !isOrgAuth) {
@@ -29,18 +30,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const customer = await getCustomerBySlug(slug);
+    const [customer, annotations, hasPat] = await Promise.all([
+      getCustomerBySlug(slug),
+      getAnnotations(slug),
+      isAdmin ? customerHasStoredPat(slug) : Promise.resolve(false),
+    ]);
 
     if (!customer) {
       return json(res, 404, { error: 'Customer model not found' });
     }
 
-    // Track customer views (non-admin)
     if (!isAdmin) {
-      recordCustomerView(slug).catch(() => {}); // fire and forget
+      recordCustomerView(slug).catch(() => {});
     }
-
-    const annotations = await getAnnotations(slug);
 
     const response = {
       slug: customer.slug,
@@ -53,11 +55,9 @@ export default async function handler(req, res) {
       isAdmin,
     };
 
-    // Only include snapshots for admins (for diff view)
     if (isAdmin) {
-      const snapshots = await getSnapshots(slug);
-      response.snapshots = snapshots;
-      response.hasPat = !!customer.encryptedPat;
+      response.snapshots = customer.snapshots || [];
+      response.hasPat = hasPat;
     }
 
     return json(res, 200, response);

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useToast } from './Toast.jsx';
 
-export default function AdminPanel({ slug, data, onAnnotationAdded }) {
+function AdminPanel({ slug, data, onAnnotationChange }) {
   const toast = useToast();
   const [shareHours, setShareHours] = useState('24');
   const [shareLinks, setShareLinks] = useState([]);
@@ -11,20 +11,35 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
   const [annotationType, setAnnotationType] = useState('context');
   const [annotationAuthor, setAnnotationAuthor] = useState('');
   const [addingAnnotation, setAddingAnnotation] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetchShareLinks();
-  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  async function fetchShareLinks() {
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchShareLinks(controller.signal);
+    return () => controller.abort();
+  }, [slug]);
+
+  async function fetchShareLinks(signal) {
     try {
-      const res = await fetch(`/api/share?slug=${slug}`, { credentials: 'include', cache: 'no-store' });
+      const res = await fetch(`/api/share?slug=${slug}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        signal,
+      });
+      if (!mountedRef.current) return;
       if (res.ok) {
-        const data = await res.json();
-        setShareLinks(data.tokens || []);
+        const json = await res.json();
+        setShareLinks(json.tokens || []);
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      if (err.name === 'AbortError') return;
     }
   }
 
@@ -41,13 +56,13 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
           createdBy: 'admin',
         }),
       });
-      if (res.ok) {
+      if (res.ok && mountedRef.current) {
         await fetchShareLinks();
       }
     } catch {
       /* ignore */
     } finally {
-      setCreatingShare(false);
+      if (mountedRef.current) setCreatingShare(false);
     }
   }
 
@@ -57,9 +72,9 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, slug }),
       });
-      await fetchShareLinks();
+      if (mountedRef.current) await fetchShareLinks();
     } catch {
       /* ignore */
     }
@@ -82,27 +97,28 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
           author: annotationAuthor || 'DevRev Team',
         }),
       });
-      if (res.ok) {
+      if (res.ok && mountedRef.current) {
+        const annotation = await res.json();
         setAnnotationText('');
         setAnnotationTarget('');
-        onAnnotationAdded?.();
+        onAnnotationChange?.({ type: 'add', annotation });
       }
     } catch {
       /* ignore */
     } finally {
-      setAddingAnnotation(false);
+      if (mountedRef.current) setAddingAnnotation(false);
     }
   }
 
   async function deleteAnnotation(id) {
     try {
-      await fetch('/api/annotations', {
+      const res = await fetch('/api/annotations', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, slug }),
       });
-      onAnnotationAdded?.();
+      if (res.ok && mountedRef.current) onAnnotationChange?.({ type: 'delete', id });
     } catch {
       /* ignore */
     }
@@ -113,12 +129,15 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
     return `${base}/customer/${slug}?token=${token}`;
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy to clipboard');
+    }
   }
 
-  // Export handlers
   function exportJSON() {
     const blob = new Blob([JSON.stringify(data.model, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -144,13 +163,11 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
     URL.revokeObjectURL(url);
   }
 
-  // Get node types for annotation target dropdown
   const nodeTypes = [...new Set(data.model?.relationships?.flatMap((r) => [r.from, r.to]) || [])];
 
   return (
     <div className="admin-panel">
       <div className="admin-panel-grid">
-        {/* Share Links */}
         <div className="admin-panel-section">
           <div className="admin-panel-section-title">Share links</div>
           <div className="share-create">
@@ -195,7 +212,6 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
           )}
         </div>
 
-        {/* Export */}
         <div className="admin-panel-section">
           <div className="admin-panel-section-title">Export</div>
           <div className="export-buttons">
@@ -208,7 +224,6 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
           </div>
         </div>
 
-        {/* Annotations */}
         <div className="admin-panel-section">
           <div className="admin-panel-section-title">Add annotation</div>
           <form onSubmit={addAnnotation} className="annotation-form">
@@ -269,3 +284,5 @@ export default function AdminPanel({ slug, data, onAnnotationAdded }) {
     </div>
   );
 }
+
+export default memo(AdminPanel);

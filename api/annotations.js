@@ -1,10 +1,21 @@
 import { isAuthenticated, isOrgAuthenticated } from './_lib/auth.js';
 import { addAnnotation, deleteAnnotation, getAnnotations } from './_lib/db.js';
-import { json, parseBody } from './_lib/handler.js';
+import { json, parseBody, safeErrorMessage } from './_lib/handler.js';
+import {
+  sanitizeAnnotationText,
+  sanitizeAuthor,
+  validateAnnotationId,
+  validateAnnotationType,
+  validateSlug,
+} from './_lib/validate.js';
 
-// POST /api/annotations — add annotation (admin only)
-// GET /api/annotations?slug=xxx — list annotations (org auth or admin)
-// DELETE /api/annotations — remove annotation (admin only)
+function sanitizeOptionalString(value, maxLen) {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().slice(0, maxLen);
+  return trimmed || null;
+}
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     if (!(await isAuthenticated(req))) {
@@ -13,30 +24,37 @@ export default async function handler(req, res) {
 
     try {
       const body = await parseBody(req);
-      const { slug, nodeType, edgeKey, text, author, annotationType } = body;
+      const slug = validateSlug(body.slug);
+      const text = sanitizeAnnotationText(body.text);
+      const author = sanitizeAuthor(body.author);
+      const annotationType = validateAnnotationType(body.annotationType);
 
-      if (!slug) return json(res, 400, { error: 'Slug is required' });
-      if (!text) return json(res, 400, { error: 'Text is required' });
+      if (!slug) return json(res, 400, { error: 'Invalid slug' });
+      if (!text) return json(res, 400, { error: 'Text is required (max 2000 characters)' });
+      if (author === null) return json(res, 400, { error: 'Invalid author' });
 
       const annotation = await addAnnotation(slug, {
-        nodeType: nodeType || null,
-        edgeKey: edgeKey || null,
-        annotationType: annotationType || 'context',
+        nodeType: sanitizeOptionalString(body.nodeType, 128),
+        edgeKey: sanitizeOptionalString(body.edgeKey, 256),
+        annotationType,
         text,
-        author: author || 'DevRev Team',
+        author,
       });
 
       return json(res, 200, annotation);
     } catch (error) {
+      if (error.message === 'Request body too large') {
+        return json(res, 413, { error: 'Request body too large' });
+      }
       console.error('Annotation create error:', error);
-      return json(res, 500, { error: 'Failed to add annotation' });
+      return json(res, 500, { error: safeErrorMessage(error, 'Failed to add annotation') });
     }
   }
 
   if (req.method === 'GET') {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const slug = url.searchParams.get('slug');
-    if (!slug) return json(res, 400, { error: 'Slug query param is required' });
+    const slug = validateSlug(url.searchParams.get('slug') || '');
+    if (!slug) return json(res, 400, { error: 'Invalid slug' });
 
     if (!(await isOrgAuthenticated(req, slug))) {
       return json(res, 401, { error: 'Authentication required' });
@@ -47,7 +65,7 @@ export default async function handler(req, res) {
       return json(res, 200, { annotations });
     } catch (error) {
       console.error('Annotation list error:', error);
-      return json(res, 500, { error: 'Failed to list annotations' });
+      return json(res, 500, { error: safeErrorMessage(error, 'Failed to list annotations') });
     }
   }
 
@@ -58,14 +76,23 @@ export default async function handler(req, res) {
 
     try {
       const body = await parseBody(req);
-      const { id } = body;
-      if (!id) return json(res, 400, { error: 'Annotation id is required' });
+      const slug = validateSlug(body.slug);
+      const id = validateAnnotationId(body.id);
 
-      await deleteAnnotation(id);
+      if (!slug) return json(res, 400, { error: 'Invalid slug' });
+      if (!id) return json(res, 400, { error: 'Invalid annotation id' });
+
+      const deleted = await deleteAnnotation(id, slug);
+      if (!deleted) {
+        return json(res, 404, { error: 'Annotation not found' });
+      }
       return json(res, 200, { ok: true });
     } catch (error) {
+      if (error.message === 'Request body too large') {
+        return json(res, 413, { error: 'Request body too large' });
+      }
       console.error('Annotation delete error:', error);
-      return json(res, 500, { error: 'Failed to delete annotation' });
+      return json(res, 500, { error: safeErrorMessage(error, 'Failed to delete annotation') });
     }
   }
 

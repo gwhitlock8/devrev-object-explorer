@@ -1,7 +1,8 @@
 import { isAuthenticated } from './_lib/auth.js';
 import { runDiscovery, slugifyOrgName } from './_lib/discoverLogic.js';
 import { saveCustomerModel, saveSnapshot, getCustomerBySlug, getCustomerPat } from './_lib/db.js';
-import { json, parseBody } from './_lib/handler.js';
+import { json, parseBody, safeErrorMessage } from './_lib/handler.js';
+import { validateSlug } from './_lib/validate.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,40 +17,44 @@ export default async function handler(req, res) {
     const body = await parseBody(req);
     const { pat, password, slug: customSlug, refresh } = body;
 
-    // Refresh mode: re-run discovery using stored PAT
     if (refresh && customSlug) {
-      const storedPat = await getCustomerPat(customSlug);
+      const slug = validateSlug(customSlug);
+      if (!slug) {
+        return json(res, 400, { error: 'Invalid slug' });
+      }
+
+      const storedPat = await getCustomerPat(slug);
       if (!storedPat) {
         return json(res, 400, { error: 'No stored PAT found for this org. Please provide a PAT.' });
       }
 
-      // Save current model as snapshot before overwriting
-      const existing = await getCustomerBySlug(customSlug);
+      const existing = await getCustomerBySlug(slug);
       if (existing?.model) {
-        await saveSnapshot(customSlug, existing.model);
+        await saveSnapshot(slug, existing.model);
       }
 
       const result = await runDiscovery(storedPat);
       await saveCustomerModel({
-        slug: customSlug,
+        slug,
         orgName: result.orgName,
         orgId: result.orgId,
         model: result.model,
         pat: storedPat,
       });
 
-      return json(res, 200, { ...result, slug: customSlug, refreshed: true });
+      return json(res, 200, { ...result, slug, refreshed: true });
     }
 
-    // New discovery mode
-    if (!pat) {
+    if (typeof pat !== 'string' || !pat.trim()) {
       return json(res, 400, { error: 'PAT is required' });
     }
 
-    const result = await runDiscovery(pat);
-    const slug = customSlug || slugifyOrgName(result.orgName);
+    const result = await runDiscovery(pat.trim());
+    const slug = customSlug ? validateSlug(customSlug) : slugifyOrgName(result.orgName);
+    if (!slug) {
+      return json(res, 400, { error: 'Invalid slug' });
+    }
 
-    // Save current model as snapshot if org already exists
     const existing = await getCustomerBySlug(slug);
     if (existing?.model) {
       await saveSnapshot(slug, existing.model);
@@ -60,23 +65,26 @@ export default async function handler(req, res) {
       orgName: result.orgName,
       orgId: result.orgId,
       model: result.model,
-      pat,
+      pat: pat.trim(),
     };
 
-    // Only set password on first creation
-    if (password && !existing) {
+    if (typeof password === 'string' && password) {
+      if (password.length < 8 || password.length > 128) {
+        return json(res, 400, { error: 'Password must be 8–128 characters' });
+      }
       saveData.password = password;
-    } else if (password) {
-      saveData.password = password; // Allow password update
     }
 
     await saveCustomerModel(saveData);
 
     return json(res, 200, { ...result, slug });
   } catch (error) {
+    if (error.message === 'Request body too large') {
+      return json(res, 413, { error: 'Request body too large' });
+    }
     console.error('Discovery error:', error);
     return json(res, 500, {
-      error: error.message || 'Failed to discover object model',
+      error: safeErrorMessage(error, 'Failed to discover object model'),
     });
   }
 }

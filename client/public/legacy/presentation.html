@@ -754,194 +754,24 @@ updatePresenterNotes();
 const dotsEl=document.getElementById('nav-dots');
 for(let i=0;i<totalSlides;i++){const d=document.createElement('div');d.className='nav-dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
 
-// Speaker notes data - ordered to match slideOrder: [OoO, Object Model, AirSync, Memory, Data Flow, Complete, Workflow]
-const speakerNotesRaw=[
-  {
-    title:'The DevRev Object Model',
-    notes:`This is the foundation everything else rests on. 45 objects across 12 categories, connected by 92 relationships.
+// Speaker notes loaded lazily on first presenter open
+let speakerNotes=null;
+let speakerNotesPromise=null;
 
-Key talking points:
-• "This isn't a database schema — it's a unified representation of how your entire business works."
-• Point out the breadth: People, Product, Work, Sales, Support, Planning — all in one graph.
-• "Every other platform gives you silos. Salesforce knows your deals, Jira knows your bugs, Zendesk knows your tickets. None of them know how those connect. We do."
-• The 92 relationships are the differentiator — it's not just storing objects, it's knowing that this ticket relates to this feature which belongs to this product which is sold via this opportunity.
-
-From the architecture deep-dive (knowledge graph extensibility):
-• "We can subclass objects to have new subtypes. We can modify existing objects. We can create completely custom objects. And we can produce links between any objects in any way we need."
-• "We come with a predefined ontology, but it's fully extensible."
-• The semantic relationships between objects are what make AI and workflow use cases possible — this isn't just storage, it's structured meaning.
-• Object-oriented model with inheritance: base objects (accounts, customers, users, work items) can be customized into subtypes (opportunities, bug requests, feature requests).
-
-Delivery: Let them absorb the visual. Don't rush to explain every object. Let the scale speak. If they ask "can we add our own objects?" — yes, that's the whole point of the extensible knowledge graph.`
-  },
-  {
-    title:'Bidirectional Data Ingestion (AirSync)',
-    notes:`AirSync is patented technology — 3 years of R&D to build. Emphasize the "bidirectional" — this isn't a one-way dump.
-
-Key talking points:
-• "Most integrations are read-only scrapers. AirSync reads AND writes. Changes flow both directions."
-• Walk the flow left-to-right: External systems → AirSync (connect, extract, transform, load) → Shared Memory.
-• "Permission-aware" is critical — when we sync your Salesforce, we don't flatten permissions. Your rep still only sees their deals.
-• Near-real-time means hourly default, configurable. Not batch overnight.
-• "Lossless transformation" — we don't lose context. A Jira epic with 15 custom fields keeps all 15.
-
-From the architecture deep-dive:
-• "After 3 years of R&D, we built an interface that lets us rapidly build new integrations — even to legacy, in-house apps — as long as they expose the right APIs."
-• AirDrop (the internal name) handles connection maintenance, secure credential renewal, everything.
-• The key insight: "Between the knowledge graph definition and AirDrop, we can create any data model and populate it from any source. Two-way."
-
-Delivery: This is where technical buyers get excited. If they ask "how do you handle schema drift?" — say "subtypes and 1:1 mapping." If they ask about scale — we handle millions of objects per sync unit. If they ask "can you connect to our internal tools?" — YES, that's what the interface is for.`
-  },
-  {
-    title:'8 Datastores (Memory)',
-    notes:`This is the "how is this different from a vector DB + RAG?" answer.
-
-Key talking points:
-• "Everyone else has one database and bolts AI on top. We have eight purpose-built stores."
-• Click through each card — each solves a different query pattern:
-  - Context Registry: "The AI knows what fields mean, not just their values"
-  - Permissions Store: "Data leakage is architecturally impossible — every query checks permissions"
-  - Time Series: "We can answer 'what changed last week' because we store the deltas"
-• "This is why we can answer questions that stumble every other AI tool. It's not a smarter model — it's better-organized data."
-
-From the architecture deep-dive (CDC pipeline detail):
-• "As things happen in the knowledge graph — new accounts, work items, sessions, articles — they generate deltas. These deltas flow through our CDC pipeline to all downstream stores simultaneously."
-• Search supports BOTH syntactic (reverse index, exact match) AND semantic (embedding models). "We don't just index the object — we index comments, discussions, and related events too."
-• You can have MULTIPLE embedding models for different tasks — not one-size-fits-all.
-• The Data Warehouse is a time series store: "We can reconstruct anything that happened to any object — when, by whom, and what changed."
-• Analytics are definable on the client side. "We come with built-ins, but you define your own. We create summarization jobs that condense the data warehouse into dashboards."
-
-Delivery: The audience probably hasn't thought about WHY you'd need 8 stores. Make it concrete: "If I ask 'show me deals that are at risk' — I need relational data (the deal), time series (is it stalling?), graph (who's the champion?), and permissions (can I see it?). That's 4 stores in one question. Nobody else can do that in one call."
-
-Pause after "architecturally impossible" on the Permissions Store — that's a strong claim that builds trust.`
-  },
-  {
-    title:'How Objects Flow Into Memory',
-    notes:`This slide makes the 8-store architecture concrete with a live demo.
-
-Key talking points:
-• Click through each object type — show how the same object lands in different stores with different roles.
-• "One ingestion event. Eight destinations. No additional integration work."
-• For Opportunity: "The relational DB stores the ACV. The graph stores who the champion is. The time series tracks stage changes. The vector DB lets you semantically search for 'deals going sideways' even if nobody tagged them as at-risk."
-• For Ticket: "This is why our support AI resolves 85% of tickets — it doesn't just keyword-match your KB, it understands the customer's history, entitlements, and similar past resolutions."
-
-Delivery: This is a good interactive moment. Ask the audience "what object type matters most to you?" and click that one. Makes it feel personalized.`
-  },
-  {
-    title:'The Complete Picture',
-    notes:`Bring it all together. Left to right: external systems → AirSync → Object Model → Memory → Services → Computer.
-
-Key talking points:
-• "This is the full pipeline. External systems on the left, trusted AI answers on the right."
-• Hover over sections to highlight them — show the audience the end-to-end flow.
-• "The key insight: DevRev assembles enterprise context BEFORE AI inference begins. The LLM never has to guess what data it needs — it's already there."
-• "This is why other approaches cap out at 65% accuracy and we hit 95%. It's not a better model — it's a better architecture."
-
-Delivery: This is your bridge to the next slide. After explaining the pipeline, say: "Let me show you what this means compared to every other approach on the market." Then advance.`
-  },
-  {
-    title:'Architecture & Order of Operations',
-    notes:`This is the "money slide." The comparison that makes the architectural advantage visceral.
-
-Key talking points:
-• TOP ROW (Federated/MCP): "A prompt comes in. The LLM decides what data to fetch. It makes API or MCP calls to your systems of record. Then it summarizes whatever it got back. This is a fetch-based guessing loop. The LLM is doing double duty — retrieval AND summarization — and it wasn't built for the first job."
-• Point at the bidirectional arrows: "See these back-and-forth arrows? Each one is a failure point. Each call has maybe 75% accuracy. Compound that across 5 steps and you're at 23.7% success."
-• The <65% stat: "The result? Less than 65% accuracy. On your enterprise data. On the questions that drive real decisions." — Let it breathe.
-• BOTTOM ROW (Computer): "Now look at DevRev. Same prompt. But the data is already composed in shared memory. Context is assembled with role and permissions. The LLM only does what it's good at — answering with complete context."
-• The arrows are all one-directional: "No guessing loops. No back-and-forth. One pass, one answer."
-• 95% accuracy: "This is published. BusinessWire, October 2024."
-• Compound error callout at the bottom: "At 75% per step, 5 steps = 23.7% success. We eliminate compounding entirely because there's nothing to compound."
-
-Delivery: Say "guessing loop" like it's a diagnosis, not an insult. You're naming the architecture, not attacking the buyer's prior choices. The <65% stat is a gut punch — let it breathe for a beat before moving on. Then the bottom row should feel like relief: "There's a better way."`
-  },
-  {
-    title:'From Data to Action (Workflow Engine & AI)',
-    notes:`This slide answers the question: "OK, you have all this data — but how does AI actually DO things?"
-
-Key talking points:
-• Walk top-to-bottom through the 4 layers:
-  1. SNAP-INS (top): "At the top, it starts with full code. Docker containers, any language. This is where the actual work happens — calling an API, provisioning access, sending a notification. 15-minute runtime, built-in OAuth and secret management."
-  2. WORKFLOWS: "Those code blocks get wrapped into a visual builder. Triggers, branches, parallel paths, loops. Less technical people can compose complex automations. AND — this is key — you can drop AI nodes in between the deterministic steps."
-  3. SKILLS: "Package a workflow with a natural language description. Now an AI agent can invoke it just from understanding what the user is asking for."
-  4. AI AGENTS (bottom): "The conversational layer. CX Agent handles customer questions, Dev Agent helps engineers, Product Agent surfaces insights. They GUIDE — but the ACTIONS run through the deterministic layers above."
-
-The critical differentiator (emphasize this):
-• "AI provides guidance and deflection. But final actions run deterministically."
-• Give the example: "User says 'give me access to Salesforce.' The AI agent understands the request, checks if they qualify, explains requirements. But the actual provisioning follows a predetermined workflow. No prompt injection can grant unauthorized access."
-• "This is why we say security is architectural, not behavioral. The LLM never controls access. Permissions are enforced at the knowledge graph level."
-
-On the Apps section:
-• "These agents surface through multiple channels simultaneously — chat widget for customers, support app for agents, build app for engineers. Same skills, same data, different audiences."
-
-On the Marketplace:
-• "You can package snap-ins and skills for the marketplace. Build once, distribute to other DevRev customers."
-
-Delivery: The 4-layer stack is a lot of information. Don't try to explain every detail. Focus on the PRINCIPLE: "Code at the top guarantees outcomes. AI at the bottom understands intent. The two layers in between — workflows and skills — connect them safely." If the audience is technical, they'll appreciate the Docker/manifest details. If executive, skip straight to the security insight.`
+async function loadSpeakerNotes(){
+  if(speakerNotes)return speakerNotes;
+  if(!speakerNotesPromise){
+    speakerNotesPromise=fetch('/legacy/speaker-notes.json')
+      .then(r=>{if(!r.ok)throw new Error('Failed to load speaker notes');return r.json();})
+      .then(data=>{speakerNotes=data;return data;});
   }
-];
-// Additional speaker notes for new slides
-const answerNotes={
-  title:'The Answer: One Memory',
-  notes:`This is the "relief" slide. You just showed them the problem — now give them hope.
-
-Key talking points:
-• Let the statement breathe. Don't rush to explain. Read it almost like a question: "What if your AI had one memory... pre-composed, permission-aware, and complete... before it ever started thinking?"
-• Pause. Let them absorb.
-• "Not a smarter model. A smarter architecture." — This is the thesis of the entire presentation.
-• The three pillars reinforce without over-explaining:
-  - One Memory: "All your scattered data in one place"
-  - Pre-composed: "No runtime fetching — the context is ready before the LLM touches it"
-  - Permission-aware: "It knows who's asking, not just what's being asked"
-
-Delivery: This slide should feel like the clouds parting. Keep your energy calm and confident — you're not selling here, you're revealing. The slides that follow will prove it. This one just names it.
-
-For exec audiences: You can stay on this slide longer and have a brief conversation before diving into the architecture. "Does this resonate with what you've experienced?" is a good bridge question.`
-};
-
-const proofNotes={
-  title:'The Proof',
-  notes:`This is where skepticism dies. Numbers, not promises.
-
-Key talking points:
-• Don't read every card. Pick the 1-2 that match the buyer's use case:
-  - IT/support buyer? → 60% ticket reduction, 40% faster resolution
-  - Sales/productivity buyer? → 6 hrs saved per rep per week
-  - Speed-to-value buyer? → 68 days discovery to production
-• The Bill.com quote is from their CIO. Use it if the audience is executive. Skip for technical.
-• "These aren't pilots or POCs. These are production deployments."
-
-Optional depth (if they ask):
-• TCC Global: retail loyalty company, 30% productivity boost, $1.2M org savings/year
-• Bolt: fintech, 4X support productivity, 25% increase in customer retention
-• Camping World: 2000+ new hires supported annually without adding IT staff
-
-Delivery: Let the numbers land. Don't over-explain them. If someone asks "how did you get 60%?" — that's a great opening for "let me show you exactly how that works with YOUR data" → leads to CTA.`
-};
-
-const ctaNotes={
-  title:"Let's Put Computer to Work",
-  notes:`The close. Keep it simple and action-oriented.
-
-Key talking points:
-• "We'll map your data environment" — this ties directly to the Object Explorer you've been showing. "We have a tool that discovers your object model automatically."
-• Don't ask "what questions do you have?" — that's passive. Instead: "Based on what you've seen, which area feels most relevant to what you're dealing with right now?"
-• The three CTAs give them choice without being overwhelming:
-  - "Map your environment" = technical next step (data discovery, PAT, AirSync conversation)
-  - "See a live demo" = if they want to see it in action before committing
-  - "Talk to engineering" = if there's a technical blocker or security question
-
-If time is short (you're at minute 28 of 30):
-• Skip the subtitle. Just say: "One next step — let's map your environment. I'll show you exactly what Computer would see from your systems. Takes 15 minutes."
-
-Delivery: Confident, not pushy. You've earned the right to ask for next steps because you just showed them real proof. End on a specific recommendation, not a generic "what do you think?""`
-};
-
-// Reorder speaker notes to match slideOrder: [OoO, Answer, ObjModel, AirSync, Memory, DataFlow, Complete, Workflow, Proof, CTA]
-const speakerNotes=[speakerNotesRaw[5],answerNotes,speakerNotesRaw[0],speakerNotesRaw[1],speakerNotesRaw[2],speakerNotesRaw[3],speakerNotesRaw[4],speakerNotesRaw[6],proofNotes,ctaNotes];
+  return speakerNotesPromise;
+}
 
 // Presenter notes window
 let presenterWindow=null;
-function openPresenterNotes(){
+async function openPresenterNotes(){
+  await loadSpeakerNotes();
   if(presenterWindow&&!presenterWindow.closed){presenterWindow.focus();updatePresenterNotes();return;}
   presenterWindow=window.open('','presenter_notes','width=500,height=700,left=100,top=100');
   const doc=presenterWindow.document;
@@ -992,7 +822,7 @@ function updatePresenterNotes(){
 document.addEventListener('keydown',e=>{
 if(e.key==='ArrowRight'||e.key===' ')goTo(current+1);
 if(e.key==='ArrowLeft')goTo(current-1);
-if(e.key==='p'||e.key==='P')openPresenterNotes();
+if(e.key==='p'||e.key==='P'){openPresenterNotes();}
 });
 
 // Slide 3: Memory cards expand

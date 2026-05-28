@@ -37,12 +37,38 @@ export default function ObjectExplorer() {
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
-  const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 });
 
   const mainRef = useRef(null);
   const svgRef = useRef(null);
   const animRef = useRef(null);
+  const drawTimeoutRef = useRef(null);
+  const selectTimeoutRef = useRef(null);
   const nodeRefs = useRef({});
+  const tooltipRef = useRef(null);
+  const tooltipVisibleRef = useRef(false);
+
+  const showTooltip = useCallback((text, x, y) => {
+    const el = tooltipRef.current;
+    if (!el) return;
+    el.textContent = text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.classList.add('visible');
+    tooltipVisibleRef.current = true;
+  }, []);
+
+  const moveTooltip = useCallback((x, y) => {
+    if (!tooltipVisibleRef.current) return;
+    const el = tooltipRef.current;
+    if (!el) return;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }, []);
+
+  const hideTooltip = useCallback(() => {
+    tooltipRef.current?.classList.remove('visible');
+    tooltipVisibleRef.current = false;
+  }, []);
 
   const panelOpen = selectedNode !== null;
   const connections = selectedNode ? getConnections(selectedNode) : [];
@@ -51,6 +77,8 @@ export default function ObjectExplorer() {
   const clearSelection = useCallback(() => {
     setSelectedNode(null);
     setNavigationHistory([]);
+    if (drawTimeoutRef.current) clearTimeout(drawTimeoutRef.current);
+    if (selectTimeoutRef.current) clearTimeout(selectTimeoutRef.current);
     if (animRef.current) cancelAnimationFrame(animRef.current);
     if (svgRef.current) {
       const defs = svgRef.current.querySelector('defs');
@@ -88,7 +116,9 @@ export default function ObjectExplorer() {
       const sourceEl = nodeRefs.current[sourceId];
       if (!sourceEl) return;
 
-      setTimeout(() => {
+      if (drawTimeoutRef.current) clearTimeout(drawTimeoutRef.current);
+      drawTimeoutRef.current = setTimeout(() => {
+        drawTimeoutRef.current = null;
         const sp = getNodeCenter(sourceEl);
         const paths = [];
 
@@ -171,13 +201,23 @@ export default function ObjectExplorer() {
       setSelectedNode(nodeId);
 
       const conns = getConnections(nodeId);
-      setTimeout(() => {
+      if (selectTimeoutRef.current) clearTimeout(selectTimeoutRef.current);
+      selectTimeoutRef.current = setTimeout(() => {
+        selectTimeoutRef.current = null;
         resizeSVG();
         drawConnections(nodeId, conns);
       }, 80);
     },
     [selectedNode, clearSelection, resizeSVG, drawConnections]
   );
+
+  useEffect(() => {
+    return () => {
+      if (drawTimeoutRef.current) clearTimeout(drawTimeoutRef.current);
+      if (selectTimeoutRef.current) clearTimeout(selectTimeoutRef.current);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     resizeSVG();
@@ -203,7 +243,7 @@ export default function ObjectExplorer() {
     return true;
   };
 
-  const nodeClass = (id, catId, tier) => {
+  const nodeClass = (id) => {
     const classes = ['object-node'];
     if (meta[id]?.t === 'secondary') classes.push('secondary-node');
     if (selectedNode === id) classes.push('selected');
@@ -331,6 +371,7 @@ export default function ObjectExplorer() {
                   <div className="objects-list">
                     {cat.objects.map((id) => {
                       const m = meta[id];
+                      if (!m) return null;
                       const count = connectionCount(id);
                       const conn = connections.find((c) => c.target === id);
                       return (
@@ -339,7 +380,7 @@ export default function ObjectExplorer() {
                           ref={(el) => {
                             nodeRefs.current[id] = el;
                           }}
-                          className={nodeClass(id, cat.id, m.t)}
+                          className={nodeClass(id)}
                           data-id={id}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -347,18 +388,16 @@ export default function ObjectExplorer() {
                           }}
                           onMouseEnter={(e) => {
                             if (selectedNode || !count) return;
-                            setTooltip({
-                              visible: true,
-                              text: `${displayName(id)} — ${count} connection${count !== 1 ? 's' : ''}`,
-                              x: e.clientX + 12,
-                              y: e.clientY - 26,
-                            });
+                            showTooltip(
+                              `${displayName(id)} — ${count} connection${count !== 1 ? 's' : ''}`,
+                              e.clientX + 12,
+                              e.clientY - 26
+                            );
                           }}
                           onMouseMove={(e) => {
-                            if (!tooltip.visible) return;
-                            setTooltip((t) => ({ ...t, x: e.clientX + 12, y: e.clientY - 26 }));
+                            moveTooltip(e.clientX + 12, e.clientY - 26);
                           }}
-                          onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+                          onMouseLeave={hideTooltip}
                         >
                           <div className="object-icon">{m.e}</div>
                           <div className="object-details">
@@ -463,12 +502,7 @@ export default function ObjectExplorer() {
         </div>
       </div>
 
-      <div
-        className={`tooltip ${tooltip.visible ? 'visible' : ''}`}
-        style={{ left: tooltip.x, top: tooltip.y }}
-      >
-        {tooltip.text}
-      </div>
+      <div ref={tooltipRef} className="tooltip" />
     </div>
   );
 }

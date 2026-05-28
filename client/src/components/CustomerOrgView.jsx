@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import CustomerGraph from './CustomerGraph.jsx';
 import AdminPanel from './AdminPanel.jsx';
@@ -13,6 +13,7 @@ export default function CustomerOrgView() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const [shareLinkInvalid, setShareLinkInvalid] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [password, setPassword] = useState('');
@@ -22,61 +23,87 @@ export default function CustomerOrgView() {
   const [showDiff, setShowDiff] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    if (slug) fetchOrg();
-  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  async function fetchOrg() {
+  const fetchOrg = useCallback(async (signal) => {
     setLoading(true);
     setFetchError('');
     setNotFound(false);
+    setShareLinkInvalid(false);
 
     try {
       let url = `/api/customer/${slug}`;
-      if (shareToken) url += `?token=${shareToken}`;
+      if (shareToken) url += `?token=${encodeURIComponent(shareToken)}`;
 
-      console.log('[CustomerOrgView] Fetching:', url);
-      const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
-      console.log('[CustomerOrgView] Response status:', res.status);
+      const res = await fetch(url, { credentials: 'include', cache: 'no-store', signal });
 
       if (res.status === 401) {
-        let body = {};
-        try { body = await res.json(); } catch { /* non-JSON 401 */ }
-        if (body.needsOrgAuth) {
-          setNeedsAuth(true);
-        } else {
-          setNeedsAuth(true); // Default to showing password gate for any 401
-        }
+        if (signal?.aborted) return;
+        setNeedsAuth(true);
+        if (shareToken) setShareLinkInvalid(true);
         setLoading(false);
         return;
       }
 
       if (res.status === 404) {
+        if (signal?.aborted) return;
         setNotFound(true);
         setLoading(false);
         return;
       }
 
       if (!res.ok) {
-        const text = await res.text();
-        console.error('[CustomerOrgView] Unexpected response:', res.status, text);
+        if (signal?.aborted) return;
         setFetchError(`Server returned ${res.status}`);
         setLoading(false);
         return;
       }
 
       const json = await res.json();
-      console.log('[CustomerOrgView] Data loaded:', json.orgName);
+      if (signal?.aborted) return;
       setData(json);
       setNeedsAuth(false);
+      setShareLinkInvalid(false);
     } catch (err) {
-      console.error('[CustomerOrgView] Fetch error:', err);
+      if (err.name === 'AbortError') return;
+      if (!mountedRef.current) return;
       setFetchError(err.message || 'Network error');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted && mountedRef.current) setLoading(false);
     }
-  }
+  }, [slug, shareToken]);
+
+  useEffect(() => {
+    if (!slug) return undefined;
+
+    const controller = new AbortController();
+    fetchOrg(controller.signal);
+
+    return () => controller.abort();
+  }, [slug, shareToken, fetchOrg]);
+
+  const handleAnnotationChange = useCallback((change) => {
+    if (change.type === 'add' && change.annotation) {
+      setData((prev) => (
+        prev ? { ...prev, annotations: [change.annotation, ...(prev.annotations || [])] } : prev
+      ));
+      return;
+    }
+    if (change.type === 'delete' && change.id) {
+      setData((prev) => (
+        prev
+          ? { ...prev, annotations: (prev.annotations || []).filter((a) => a.id !== change.id) }
+          : prev
+      ));
+    }
+  }, []);
 
   async function handleOrgAuth(e) {
     e.preventDefault();
@@ -93,13 +120,15 @@ export default function CustomerOrgView() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Authentication failed');
 
+      if (!mountedRef.current) return;
       setPassword('');
       setNeedsAuth(false);
+      setShareLinkInvalid(false);
       await fetchOrg();
     } catch (err) {
-      setAuthError(err.message);
+      if (mountedRef.current) setAuthError(err.message);
     } finally {
-      setAuthLoading(false);
+      if (mountedRef.current) setAuthLoading(false);
     }
   }
 
@@ -115,12 +144,13 @@ export default function CustomerOrgView() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Refresh failed');
+      if (!mountedRef.current) return;
       toast.success('Model refreshed successfully');
       await fetchOrg();
     } catch (err) {
-      toast.error(`Refresh failed: ${err.message}`);
+      if (mountedRef.current) toast.error(`Refresh failed: ${err.message}`);
     } finally {
-      setRefreshing(false);
+      if (mountedRef.current) setRefreshing(false);
     }
   }
 
@@ -133,7 +163,6 @@ export default function CustomerOrgView() {
     );
   }
 
-  // Fetch error
   if (fetchError) {
     return (
       <div className="auth-page">
@@ -142,7 +171,7 @@ export default function CustomerOrgView() {
             <span>Error</span>
           </h1>
           <p>{fetchError}</p>
-          <button type="button" className="auth-btn" onClick={fetchOrg}>
+          <button type="button" className="auth-btn" onClick={() => fetchOrg()}>
             Retry
           </button>
           <Link to="/admin/dashboard" className="auth-link">
@@ -153,7 +182,6 @@ export default function CustomerOrgView() {
     );
   }
 
-  // Org password gate
   if (needsAuth) {
     return (
       <div className="auth-page">
@@ -161,7 +189,11 @@ export default function CustomerOrgView() {
           <h1>
             Object <span>Model</span>
           </h1>
-          <p>Enter the password to view this organization&apos;s object model</p>
+          {shareLinkInvalid ? (
+            <p>This share link is invalid or has expired. Enter the org password to continue.</p>
+          ) : (
+            <p>Enter the password to view this organization&apos;s object model</p>
+          )}
           <form onSubmit={handleOrgAuth}>
             <input
               type="password"
@@ -184,7 +216,6 @@ export default function CustomerOrgView() {
     );
   }
 
-  // Not found
   if (notFound || !data) {
     return (
       <div className="auth-page">
@@ -199,7 +230,10 @@ export default function CustomerOrgView() {
     );
   }
 
-  const stats = data.model?.stats || {};
+  const model = data.model ?? { categories: [], relationships: [], stats: {} };
+  const categories = model.categories ?? [];
+  const relationships = model.relationships ?? [];
+  const stats = model.stats ?? {};
   const isAdmin = data.isAdmin;
 
   return (
@@ -250,25 +284,23 @@ export default function CustomerOrgView() {
         </div>
       </div>
 
-      {/* Admin panel (share links, annotations, export) */}
       {isAdmin && showAdmin && (
-        <AdminPanel slug={slug} data={data} onAnnotationAdded={fetchOrg} />
+        <AdminPanel slug={slug} data={data} onAnnotationChange={handleAnnotationChange} />
       )}
 
-      {/* Diff view */}
       {isAdmin && showDiff && data.snapshots?.length > 0 && (
-        <DiffView current={data.model} snapshots={data.snapshots} />
+        <DiffView current={model} snapshots={data.snapshots} />
       )}
 
       <div className="results-body">
         <div className="results-stats">
           {[
-            { num: data.model.categories.length, label: 'Categories' },
+            { num: categories.length, label: 'Categories' },
             {
-              num: data.model.categories.reduce((s, c) => s + c.objects.length, 0),
+              num: categories.reduce((s, c) => s + (c.objects?.length ?? 0), 0),
               label: 'Objects',
             },
-            { num: data.model.relationships.length, label: 'Relationships' },
+            { num: relationships.length, label: 'Relationships' },
             { num: stats.totalSyncUnits, label: 'Sync Units' },
             { num: stats.totalAccounts, label: 'Accounts' },
           ].map((s) => (
@@ -279,22 +311,19 @@ export default function CustomerOrgView() {
           ))}
         </div>
 
-        {/* Interactive relationship graph */}
-        {data.model.relationships.length > 0 && (
+        {relationships.length > 0 && (
           <div className="graph-section">
             <div className="graph-section-header">
               <div className="graph-section-title">Relationship Graph</div>
               <div className="graph-section-hint">Click edges to see real examples &middot; Click nodes to highlight connections</div>
             </div>
             <CustomerGraph
-              relationships={data.model.relationships}
-              orgName={data.orgName}
+              relationships={relationships}
               annotations={data.annotations}
             />
           </div>
         )}
 
-        {/* General annotations (not pinned to a node) shown below graph */}
         {data.annotations?.filter((a) => !a.nodeType && !a.edgeKey).length > 0 && (
           <div className="annotations-section">
             <div className="annotations-title">General notes</div>
@@ -311,25 +340,24 @@ export default function CustomerOrgView() {
           </div>
         )}
 
-        {/* Category inventory cards */}
         <div className="cat-grid">
-          {data.model.categories.map((cat) => (
+          {categories.map((cat) => (
             <div key={cat.id} className="cat-card">
               <div className="cat-card-header">
                 <div className="cat-card-dot" style={{ background: cat.color }} />
                 <span className="cat-card-title">{cat.label}</span>
-                <span className="cat-card-count">{cat.objects.length}</span>
+                <span className="cat-card-count">{cat.objects?.length ?? 0}</span>
               </div>
               <div className="cat-objects">
-                {cat.objects.slice(0, 12).map((obj) => (
+                {(cat.objects ?? []).slice(0, 12).map((obj) => (
                   <div key={obj.id} className="cat-obj">
                     <span className="cat-obj-type">{obj.type}</span>
                     <span className="cat-obj-name">{obj.name}</span>
                     {obj.desc && <span className="cat-obj-desc">{obj.desc}</span>}
                   </div>
                 ))}
-                {cat.objects.length > 12 && (
-                  <div className="cat-more">+{cat.objects.length - 12} more</div>
+                {(cat.objects?.length ?? 0) > 12 && (
+                  <div className="cat-more">+{(cat.objects?.length ?? 0) - 12} more</div>
                 )}
               </div>
             </div>

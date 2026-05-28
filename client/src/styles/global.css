@@ -2,26 +2,31 @@
   font-family: 'Chip Display';
   src: url('/fonts/ChipDisp-Bold.otf') format('opentype');
   font-weight: 700;
+  font-display: swap;
 }
 @font-face {
   font-family: 'Chip Display';
   src: url('/fonts/ChipDisp-Semibold.otf') format('opentype');
   font-weight: 600;
+  font-display: swap;
 }
 @font-face {
   font-family: 'Chip Text';
   src: url('/fonts/ChipText-Regular.otf') format('opentype');
   font-weight: 400;
+  font-display: swap;
 }
 @font-face {
   font-family: 'Chip Text';
   src: url('/fonts/ChipText-Medium.otf') format('opentype');
   font-weight: 500;
+  font-display: swap;
 }
 @font-face {
   font-family: 'Chip Mono';
   src: url('/fonts/ChipMono-Medium.otf') format('opentype');
   font-weight: 500;
+  font-display: swap;
 }
 
 :root {
@@ -230,18 +235,12 @@ a {
   color: var(--y400);
 }
 
-.loading-page,
-.loading-overlay {
+.loading-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(22, 22, 22, 0.9);
+  min-height: calc(100vh - 49px);
 }
 
 .loading-spinner {
@@ -308,23 +307,6 @@ a {
   border: 1px solid var(--n1000);
   color: var(--n700);
   text-transform: uppercase;
-}
-
-.results-back {
-  font-family: 'Chip Mono', monospace;
-  font-size: 11px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  background: var(--n1100);
-  border: 1px solid var(--n900);
-  color: var(--n700);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.results-back:hover {
-  border-color: var(--y400);
-  color: var(--y400);
 }
 
 .results-body {
@@ -475,54 +457,6 @@ a {
   color: var(--n800);
 }
 
-.rel-section {
-  margin-top: 32px;
-}
-
-.rel-title {
-  font-family: 'Chip Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--n700);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rel-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--n1000);
-}
-
-.rel-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 6px;
-}
-
-.rel-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--n1200);
-  border: 1px solid var(--n1000);
-  font-size: 11px;
-}
-
-.rel-arrow {
-  color: var(--green);
-}
-
-.rel-label {
-  color: var(--n800);
-  font-style: italic;
-}
-
 /* ==== Admin Dashboard ==== */
 
 .admin-dashboard {
@@ -551,6 +485,12 @@ a {
 
 .admin-header-left h1 span {
   color: var(--y400);
+}
+
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .admin-badge {
@@ -647,6 +587,11 @@ a {
 .admin-org-card:hover {
   border-color: var(--y400);
   background: var(--n1100);
+}
+
+.org-card-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .org-card-name {
@@ -796,6 +741,10 @@ a {
   gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.admin-panel-section {
+  min-width: 0;
 }
 
 .admin-panel-section-title {
@@ -1016,10 +965,6 @@ a {
   font-family: 'Chip Mono', monospace;
   font-size: 9px;
   color: var(--n800);
-}
-
-.annotation-target {
-  color: var(--green);
 }
 
 /* ==== Diff View ==== */

@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function computeDiff(current, previous) {
   const diff = { added: [], removed: [], changed: [] };
 
-  // Compare categories
   const currentCatIds = new Set(current.categories.map((c) => c.id));
   const prevCatIds = new Set(previous.categories.map((c) => c.id));
 
@@ -19,7 +18,6 @@ function computeDiff(current, previous) {
     }
   });
 
-  // Compare relationships
   const currentRels = new Set(current.relationships.map((r) => `${r.from}→${r.to}→${r.label}`));
   const prevRels = new Set(previous.relationships.map((r) => `${r.from}→${r.to}→${r.label}`));
 
@@ -37,7 +35,6 @@ function computeDiff(current, previous) {
     }
   });
 
-  // Compare object counts per category
   current.categories.forEach((cat) => {
     const prevCat = previous.categories.find((c) => c.id === cat.id);
     if (prevCat && cat.objects.length !== prevCat.objects.length) {
@@ -54,11 +51,18 @@ function computeDiff(current, previous) {
 }
 
 export default function DiffView({ current, snapshots }) {
-  const [selectedIdx, setSelectedIdx] = useState(snapshots.length - 1);
+  const [selectedIdx, setSelectedIdx] = useState(() => Math.max(0, (snapshots?.length ?? 1) - 1));
+
+  useEffect(() => {
+    if (!snapshots?.length) return;
+    setSelectedIdx((prev) => Math.min(prev, snapshots.length - 1));
+  }, [snapshots]);
 
   if (!snapshots?.length) return null;
 
   const snapshot = snapshots[selectedIdx];
+  if (!snapshot?.model) return null;
+
   const diff = computeDiff(current, snapshot.model);
   const totalChanges = diff.added.length + diff.removed.length + diff.changed.length;
 

@@ -1,30 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSession } from './SessionProvider.jsx';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
-  const checkedRef = useRef(false);
+  const { loading: sessionLoading, isAdmin, refresh } = useSession();
+  const mountedRef = useRef(true);
 
-  // Check if already authenticated - only once
   useEffect(() => {
-    if (checkedRef.current) return;
-    checkedRef.current = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    fetch('/api/session', { credentials: 'include', cache: 'no-store' })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.authenticated && d.role === 'admin') {
-          navigate('/admin/dashboard', { replace: true });
-        } else {
-          setChecking(false);
-        }
-      })
-      .catch(() => setChecking(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (isAdmin) navigate('/admin/dashboard', { replace: true });
+  }, [sessionLoading, isAdmin, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,15 +36,16 @@ export default function AdminLogin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      navigate('/admin/dashboard', { replace: true });
+      await refresh();
+      if (mountedRef.current) navigate('/admin/dashboard', { replace: true });
     } catch (err) {
-      setError(err.message);
+      if (mountedRef.current) setError(err.message);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
-  if (checking) {
+  if (sessionLoading) {
     return (
       <div className="loading-page">
         <div className="loading-spinner" />

@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
-import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { randomBytes } from 'crypto';
+import { encryptPat, decryptPat, hashPassword, verifyPassword } from './secrets.js';
 
 let client;
 let db;
@@ -13,9 +14,18 @@ export async function getDb() {
 
   if (!client) {
     try {
-      client = new MongoClient(uri);
+      client = new MongoClient(uri, {
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 10000,
+        serverSelectionTimeoutMS: 5000,
+      });
       await client.connect();
       db = client.db();
+      await db.collection('rate_limits').createIndex(
+        { windowStart: 1 },
+        { expireAfterSeconds: 86400 }
+      );
     } catch (err) {
       console.error('[DB] Connection failed:', err.message);
       client = null;
@@ -26,59 +36,6 @@ export async function getDb() {
   return db;
 }
 
-// ------------------------------------------------------------------
-// Password hashing (simple sha256 + salt for serverless perf)
-// ------------------------------------------------------------------
-
-export function hashPassword(plaintext) {
-  const salt = randomBytes(16).toString('hex');
-  const hash = createHash('sha256').update(salt + plaintext).digest('hex');
-  return `${salt}:${hash}`;
-}
-
-export function verifyPassword(plaintext, stored) {
-  const [salt, hash] = stored.split(':');
-  const attempt = createHash('sha256').update(salt + plaintext).digest('hex');
-  return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(attempt, 'hex'));
-}
-
-// ------------------------------------------------------------------
-// PAT encryption (AES-like using XOR with env key - lightweight)
-// For production, use a proper KMS. This keeps PATs not plaintext in DB.
-// ------------------------------------------------------------------
-
-function getEncryptionKey() {
-  const key = process.env.PAT_ENCRYPTION_KEY || process.env.JWT_SECRET || '';
-  return createHash('sha256').update(key).digest();
-}
-
-export function encryptPat(pat) {
-  const key = getEncryptionKey();
-  const iv = randomBytes(16);
-  const buf = Buffer.from(pat, 'utf8');
-  const encrypted = Buffer.alloc(buf.length);
-  for (let i = 0; i < buf.length; i++) {
-    encrypted[i] = buf[i] ^ key[(i + iv[i % 16]) % 32];
-  }
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
-}
-
-export function decryptPat(stored) {
-  const key = getEncryptionKey();
-  const [ivHex, encHex] = stored.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const encrypted = Buffer.from(encHex, 'hex');
-  const decrypted = Buffer.alloc(encrypted.length);
-  for (let i = 0; i < encrypted.length; i++) {
-    decrypted[i] = encrypted[i] ^ key[(i + iv[i % 16]) % 32];
-  }
-  return decrypted.toString('utf8');
-}
-
-// ------------------------------------------------------------------
-// Customer org CRUD
-// ------------------------------------------------------------------
-
 export async function saveCustomerModel({ slug, orgName, orgId, model, password, pat }) {
   const database = await getDb();
   if (!database) {
@@ -87,11 +44,10 @@ export async function saveCustomerModel({ slug, orgName, orgId, model, password,
 
   const now = new Date();
   const setFields = { orgName, orgId, model, lastRefreshed: now };
-
-  // Only set password and pat on insert or if explicitly provided for update
   const setOnInsert = { discoveredAt: now, snapshots: [] };
+
   if (password) {
-    setFields.passwordHash = hashPassword(password);
+    setFields.passwordHash = await hashPassword(password);
   }
   if (pat) {
     setFields.encryptedPat = encryptPat(pat);
@@ -112,7 +68,25 @@ export async function saveCustomerModel({ slug, orgName, orgId, model, password,
 export async function getCustomerBySlug(slug) {
   const database = await getDb();
   if (!database) return null;
-  return database.collection('customers').findOne({ slug });
+  return database.collection('customers').findOne(
+    { slug },
+    {
+      projection: {
+        passwordHash: 0,
+        encryptedPat: 0,
+      },
+    }
+  );
+}
+
+export async function customerHasStoredPat(slug) {
+  const database = await getDb();
+  if (!database) return false;
+  const doc = await database.collection('customers').findOne(
+    { slug },
+    { projection: { encryptedPat: 1 } }
+  );
+  return !!doc?.encryptedPat;
 }
 
 export async function listCustomers() {
@@ -143,10 +117,6 @@ export async function verifyOrgPassword(slug, password) {
   return verifyPassword(password, doc.passwordHash);
 }
 
-// ------------------------------------------------------------------
-// Track customer views
-// ------------------------------------------------------------------
-
 export async function recordCustomerView(slug) {
   const database = await getDb();
   if (!database) return;
@@ -156,29 +126,18 @@ export async function recordCustomerView(slug) {
   );
 }
 
-// ------------------------------------------------------------------
-// Delete org and all related data
-// ------------------------------------------------------------------
-
 export async function deleteCustomerOrg(slug) {
   const database = await getDb();
   if (!database) {
     throw new Error('Database connection unavailable.');
   }
 
-  // Delete the customer document
   await database.collection('customers').deleteOne({ slug });
-  // Delete all share tokens for this org
   await database.collection('share_tokens').deleteMany({ slug });
-  // Delete all annotations for this org
   await database.collection('annotations').deleteMany({ slug });
 
   return { deleted: slug };
 }
-
-// ------------------------------------------------------------------
-// Snapshots (for diff view) - keep last 3
-// ------------------------------------------------------------------
 
 export async function saveSnapshot(slug, model) {
   const database = await getDb();
@@ -191,7 +150,7 @@ export async function saveSnapshot(slug, model) {
       $push: {
         snapshots: {
           $each: [{ model, createdAt: now }],
-          $slice: -3, // keep only last 3
+          $slice: -3,
         },
       },
     }
@@ -204,10 +163,6 @@ export async function getSnapshots(slug) {
   const doc = await database.collection('customers').findOne({ slug }, { projection: { snapshots: 1 } });
   return doc?.snapshots || [];
 }
-
-// ------------------------------------------------------------------
-// Share tokens (time-limited read-only access)
-// ------------------------------------------------------------------
 
 export async function createShareToken(slug, expiresInHours, createdBy) {
   const database = await getDb();
@@ -233,7 +188,7 @@ export async function verifyShareToken(token) {
 
   const doc = await database.collection('share_tokens').findOne({ token });
   if (!doc) return null;
-  if (new Date() > doc.expiresAt) return null; // expired
+  if (new Date() > doc.expiresAt) return null;
   return doc.slug;
 }
 
@@ -246,15 +201,12 @@ export async function listShareTokens(slug) {
     .toArray();
 }
 
-export async function deleteShareToken(token) {
+export async function deleteShareToken(token, slug) {
   const database = await getDb();
-  if (!database) return;
-  await database.collection('share_tokens').deleteOne({ token });
+  if (!database) return false;
+  const result = await database.collection('share_tokens').deleteOne({ token, slug });
+  return result.deletedCount === 1;
 }
-
-// ------------------------------------------------------------------
-// Annotations
-// ------------------------------------------------------------------
 
 export async function addAnnotation(slug, { nodeType, edgeKey, text, author, annotationType }) {
   const database = await getDb();
@@ -284,8 +236,9 @@ export async function getAnnotations(slug) {
     .toArray();
 }
 
-export async function deleteAnnotation(id) {
+export async function deleteAnnotation(id, slug) {
   const database = await getDb();
-  if (!database) return;
-  await database.collection('annotations').deleteOne({ id });
+  if (!database) return false;
+  const result = await database.collection('annotations').deleteOne({ id, slug });
+  return result.deletedCount === 1;
 }

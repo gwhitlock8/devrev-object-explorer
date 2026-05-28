@@ -4,6 +4,17 @@ import { saveCustomerModel, saveSnapshot, getCustomerBySlug, getCustomerPat } fr
 import { json, parseBody, safeErrorMessage } from './_lib/handler.js';
 import { validateSlug } from './_lib/validate.js';
 
+function discoverErrorMessage(error) {
+  const msg = error?.message || '';
+  if (msg.includes('PAT_ENCRYPTION_KEY') || msg.includes('JWT_SECRET') || msg.includes('store PATs')) {
+    return 'Server encryption is not configured. Set PAT_ENCRYPTION_KEY (recommended) or JWT_SECRET in Vercel environment variables.';
+  }
+  if (msg.includes('MONGODB_URI') || msg.includes('Database connection')) {
+    return 'Database connection failed. Check MONGODB_URI in Vercel environment variables.';
+  }
+  return safeErrorMessage(error, 'Failed to discover object model');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
@@ -23,7 +34,8 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'Invalid slug' });
       }
 
-      const storedPat = await getCustomerPat(slug);
+      const submittedPat = typeof pat === 'string' ? pat.trim() : '';
+      const storedPat = submittedPat || await getCustomerPat(slug);
       if (!storedPat) {
         return json(res, 400, { error: 'No stored PAT found for this org. Please provide a PAT.' });
       }
@@ -84,7 +96,7 @@ export default async function handler(req, res) {
     }
     console.error('Discovery error:', error);
     return json(res, 500, {
-      error: safeErrorMessage(error, 'Failed to discover object model'),
+      error: discoverErrorMessage(error),
     });
   }
 }

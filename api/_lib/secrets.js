@@ -17,10 +17,10 @@ function isProduction() {
 }
 
 function getPatEncryptionKey() {
-  const key = process.env.PAT_ENCRYPTION_KEY;
+  const key = process.env.PAT_ENCRYPTION_KEY || process.env.JWT_SECRET;
   if (!key) {
     if (isProduction()) {
-      throw new Error('PAT_ENCRYPTION_KEY is required in production');
+      throw new Error('PAT_ENCRYPTION_KEY or JWT_SECRET is required to store PATs');
     }
     return createHash('sha256').update('dev-only-insecure-pat-key').digest();
   }
